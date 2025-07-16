@@ -8,16 +8,21 @@ CXXFLAGS = -std=c++17 -Wall -O2 \
 
 LDFLAGS = -lpthread
 
-SOURCES = main.cpp phproxy.cpp
-HEADERS = phproxy.hpp json.hpp
+SOURCES = main.cpp pdproxy.cpp
+HEADERS = pdproxy.hpp json.hpp
 TARGET = phproxy
+
+OBJS = main.o pdproxy.o
 
 all: $(TARGET)
 
-$(TARGET): $(SOURCES) $(HEADERS)
-	$(CXX) $(CXXFLAGS) $(SOURCES) $(LDFLAGS) -o $(TARGET)
+$(TARGET): $(OBJS)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(TARGET)
+
+main.o: main.cpp pdproxy.hpp
+pdproxy.o: pdproxy.cpp pdproxy.hpp
 
 clean:
-	rm -f $(TARGET)
+	rm -f $(TARGET) $(OBJS)
 
 .PHONY: all clean
