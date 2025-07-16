@@ -1,26 +1,25 @@
 #pragma once
-#include <system_error>
-#include "asio.hpp"
-#include "websocketpp/config/asio_no_tls.hpp"
-#include "websocketpp/server.hpp"
 #include <string>
-#include <memory>
 #include <span>
-#include "json.hpp" // nlohmann/json single header
+#include "json.hpp"
+#include <ixwebsocket/IXWebSocketServer.h>
+#include <ixwebsocket/IXNetSystem.h>
+#include <thread>
+#include <atomic>
+#include <vector>
 
 class PDProxy
 {
 public:
     PDProxy(unsigned short udp_port, unsigned short ws_port);
     ~PDProxy();
-
     void run(); // blocks
-
-protected:
-    // Implement UDP→JSON mapping logic
-    virtual std::string udp_packet_to_json(std::span<const char> data);
-
+    std::string udp_packet_to_json(std::span<const char> data);
+    void graceful_shutdown();
 private:
-    struct Impl;
-    std::unique_ptr<Impl> pImpl;
+    void udp_loop();
+    unsigned short udp_port;
+    ix::WebSocketServer server;
+    std::thread udp_thread;
+    std::atomic<bool> stop_flag;
 };

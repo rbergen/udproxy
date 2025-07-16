@@ -1,18 +1,26 @@
-# Simple Makefile for phproxy (UDP→WebSocket Proxy, C++17, header-only deps)
+# Simple Makefile for pdproxy (UDP→WebSocket Proxy, C++20, header-only deps)
 
 CXX ?= c++
-CXXFLAGS = -std=c++17 -Wall -O2 \
-  -I. \
-  -Iwebsocketpp \
-  -Iasio
+CXXFLAGS = -std=c++20 -Wall -O2 -I. -I./IXWebSocket
 
-LDFLAGS = -lpthread
+LDFLAGS = -lpthread -lz
 
-SOURCES = main.cpp pdproxy.cpp
-HEADERS = pdproxy.hpp json.hpp
-TARGET = phproxy
+IXWS_SRC = \
+    IXWebSocket/ixwebsocket/IXWebSocketServer.cpp \
+    IXWebSocket/ixwebsocket/IXWebSocket.cpp \
+    IXWebSocket/ixwebsocket/IXNetSystem.cpp \
+    IXWebSocket/ixwebsocket/IXSocket.cpp \
+    IXWebSocket/ixwebsocket/IXDNSLookup.cpp \
+    IXWebSocket/ixwebsocket/IXWebSocketPerMessageDeflate.cpp \
+    IXWebSocket/ixwebsocket/IXWebSocketHandshake.cpp \
+    IXWebSocket/ixwebsocket/IXWebSocketHttpHeaders.cpp \
+    IXWebSocket/ixwebsocket/IXWebSocketTransport.cpp \
+    IXWebSocket/ixwebsocket/IXWebSocketSendState.cpp
 
-OBJS = main.o pdproxy.o
+SOURCES = main.cpp pdproxy.cpp $(IXWS_SRC)
+TARGET = pdproxy
+
+OBJS = $(SOURCES:.cpp=.o)
 
 all: $(TARGET)
 

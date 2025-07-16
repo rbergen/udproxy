@@ -1,92 +1,106 @@
 #include "pdproxy.hpp"
-#include <set>
+#include <ixwebsocket/IXWebSocketServer.h>
+#include <ixwebsocket/IXNetSystem.h>
+#include <thread>
+#include <atomic>
 #include <vector>
-#include <cstdint>
+#include <cstring>
+#include <iostream>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <unistd.h>
+#include <csignal>
 
-using asio::ip::udp;
-typedef websocketpp::server<websocketpp::config::asio> ws_server;
-using connection_hdl = websocketpp::connection_hdl;
-
-struct PDProxy::Impl
-{
-    asio::io_context io_ctx;
-    udp::socket socket;
-    udp::endpoint remote_endpoint;
-    ws_server ws_server;
-    std::set<connection_hdl, std::owner_less<connection_hdl>> ws_clients;
-    std::vector<char> buffer;
-
-    unsigned short udp_port;
-    unsigned short ws_port;
-    PDProxy* parent;
-
-    Impl(unsigned short udp, unsigned short ws, PDProxy* p)
-        : socket(io_ctx), udp_port(udp), ws_port(ws), parent(p) {}
-
-    void setup_ws_server()
+namespace {
+    static PDProxy* g_pdproxy_instance = nullptr;
+    void signal_handler(int)
     {
-        ws_server.set_reuse_addr(true);
-        ws_server.init_asio(&io_ctx);
-        ws_server.set_open_handler([this](connection_hdl hdl) { ws_clients.insert(hdl); });
-        ws_server.set_close_handler([this](connection_hdl hdl) { ws_clients.erase(hdl); });
-        ws_server.listen(ws_port);
-        ws_server.start_accept();
+        if (g_pdproxy_instance) g_pdproxy_instance->graceful_shutdown();
     }
-
-    void setup_udp() {
-        socket.open(udp::v4());
-        socket.bind(udp::endpoint(udp::v4(), udp_port));
-        start_receive();
-    }
-
-    void start_receive()
-    {
-        socket.async_receive_from(
-            asio::buffer(buffer), remote_endpoint,
-            [this](std::error_code ec, std::size_t bytes_recvd)
-            {
-                if (!ec && bytes_recvd > 0)
-                {
-                    std::string payload = parent->udp_packet_to_json(std::span<const char>(buffer.data(), bytes_recvd));
-                    if (!payload.empty() && !ws_clients.empty())
-                        forward_to_ws_clients(payload);
-                }
-                start_receive();
-            }
-        );
-    }
-
-    void forward_to_ws_clients(const std::string& data)
-    {
-        for (auto it = ws_clients.begin(); it != ws_clients.end();)
-        {
-            websocketpp::lib::error_code ec;
-            ws_server.send(*it, data, websocketpp::frame::opcode::text, ec);
-            if (ec)
-                it = ws_clients.erase(it);
-            else
-                ++it;
-        }
-    }
-};
-
-PDProxy::PDProxy(unsigned short udp_port, unsigned short ws_port)
-    : pImpl(std::make_unique<Impl>(udp_port, ws_port, this))
-{
-    pImpl->setup_ws_server();
-    pImpl->setup_udp();
 }
 
-PDProxy::~PDProxy() = default;
+void PDProxy::graceful_shutdown()
+{
+    stop_flag = true;
+    server.stop();
+}
+
+PDProxy::PDProxy(unsigned short udp_port, unsigned short ws_port)
+    : udp_port(udp_port), server(ws_port), stop_flag(false)
+{
+}
+
+PDProxy::~PDProxy()
+{
+    stop_flag = true;
+    if (udp_thread.joinable())
+        udp_thread.join();
+}
 
 void PDProxy::run()
 {
-    pImpl->io_ctx.run();
+    ix::initNetSystem();
+
+    // Register signal handler for graceful shutdown
+    g_pdproxy_instance = this;
+    std::signal(SIGINT, signal_handler);
+
+    server.start();
+
+    udp_thread = std::thread([this]() { udp_loop(); });
+    server.wait();
+
+    stop_flag = true;
+
+    if (udp_thread.joinable())
+        udp_thread.join();
+
+    ix::uninitNetSystem();
+    g_pdproxy_instance = nullptr;
+}
+
+void PDProxy::udp_loop()
+{
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0)
+        return;
+
+    sockaddr_in addr{};
+    addr.sin_family = AF_INET;
+    addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    addr.sin_port = htons(udp_port);
+
+    if (bind(sock, (sockaddr*)&addr, sizeof(addr)) < 0)
+    {
+        close(sock);
+        return;
+    }
+
+    std::vector<char> buffer(2048);
+    while (!stop_flag)
+    {
+        ssize_t n = recv(sock, buffer.data(), buffer.size(), 0);
+        if (n == 0)
+            continue;
+
+        std::string json = udp_packet_to_json(std::span<const char>(buffer.data(), n));
+        if (json.empty())
+            continue;
+
+        for (auto& client : server.getClients())
+        {
+            if (client && client->getReadyState() == ix::ReadyState::Open)
+                client->send(json);
+        }
+    }
+
+    close(sock);
 }
 
 std::string PDProxy::udp_packet_to_json(std::span<const char> data)
 {
-    if (data.size() != 16) return "{}";
+    if (data.size() != 16)
+        return "";
 
     uint32_t address;
     uint16_t ps_data, ps_psw, ps_mser, ps_cpu_err, ps_mmr0, ps_mmr3;
@@ -134,5 +148,6 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     json["prog_phy"]      = prog_phy;
     json["parity_high"]   = !!(ps_mser & (1 << 9));
     json["parity_low"]    = !!(ps_mser & (1 << 8));
+
     return json.dump();
 }

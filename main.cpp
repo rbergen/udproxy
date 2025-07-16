@@ -1,5 +1,5 @@
 #include "pdproxy.hpp"
-#include "json.hpp" // nlohmann/json single header
+#include "json.hpp"
 #include <iostream>
 
 int main()
