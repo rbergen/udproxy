@@ -103,28 +103,28 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     bool data_on = (ps_psw & (1 << 13));
 
     nlohmann::json json;
-    json["ParityError"]  = (ps_mser & 0x7380) ? 1 : 0;
-    json["AddressError"] = (ps_cpu_err & 0xfc00) ? 1 : 0;
-    json["Run"]          = 1;
-    json["Pause"]        = 0;
-    json["Master"]       = 1;
-    json["UserMode"]     = (mode == 3);
-    json["SuperMode"]    = (mode == 1);
-    json["KernelMode"]   = (mode == 0);
-    json["DataOn"]       = data_on ? 1 : 0;
-    json["Addr16"]       = !(ps_mmr3 & ((1 << 4) | (1 << 5)));
-    json["Addr18"]       = (ps_mmr3 & (1 << 5)) && !(ps_mmr3 & (1 << 4));
-    json["Addr22"]       = (ps_mmr3 & (1 << 4));
-    json["UserD"]        = (mode == 3) && data_on;
-    json["UserI"]        = (mode == 3) && !data_on;
-    json["SuperD"]       = (mode == 1) && data_on;
-    json["SuperI"]       = (mode == 1) && !data_on;
-    json["KernelD"]      = (mode == 0) && data_on;
-    json["KernelI"]      = (mode == 0) && !data_on;
-    json["ConsPhy"]      = 0;
-    json["ProgPhy"]      = !(ps_mmr0 & 1);
-    json["ParityHigh"]   = (ps_mser & (1 << 9)) ? 1 : 0;
-    json["ParityLow"]    = (ps_mser & (1 << 8)) ? 1 : 0;
-    
+    json["parity_error"]  = (ps_mser & 0x7380) != 0;
+    json["address_error"] = (ps_cpu_err & 0xfc00) != 0;
+    json["run"]           = true;
+    json["pause"]         = false;
+    json["master"]        = true;
+    json["user_mode"]     = (mode == 3);
+    json["super_mode"]    = (mode == 1);
+    json["kernel_mode"]   = (mode == 0);
+    json["data_on"]       = (data_on != 0);
+    json["addr16"]        = !(ps_mmr3 & ((1 << 4) | (1 << 5)));
+    json["addr18"]        = (ps_mmr3 & (1 << 5)) && !(ps_mmr3 & (1 << 4));
+    json["addr22"]        = (ps_mmr3 & (1 << 4));
+    json["user_d"]        = (mode == 3) && data_on;
+    json["user_i"]        = (mode == 3) && !data_on;
+    json["super_d"]       = (mode == 1) && data_on;
+    json["super_i"]       = (mode == 1) && !data_on;
+    json["kernel_d"]      = (mode == 0) && data_on;
+    json["kernel_i"]      = (mode == 0) && !data_on;
+    json["cons_phy"]      = false;
+    json["prog_phy"]      = !(ps_mmr0 & 1);
+    json["parity_high"]   = (ps_mser & (1 << 9)) != 0;
+    json["parity_low"]    = (ps_mser & (1 << 8)) != 0;
+
     return json.dump();
 }
