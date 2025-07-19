@@ -3,6 +3,9 @@
 #include <cstdarg>
 #include <cstdio>
 
+#define INFO    "INF"
+#define ERROR   "ERR"
+
 inline void log_message_va(const char* module, const char* level, const char* fmt, va_list args) {
     FILE* out = (level[0] == 'E') ? stderr : stdout;
     char ts[32];
@@ -20,5 +23,24 @@ inline void log_message(const char* module, const char* level, const char* fmt, 
     va_end(args);
 }
 
-#define LOG_INFO(module, fmt, ...) log_message(module, "INFO", fmt, ##__VA_ARGS__)
-#define LOG_ERROR(module, fmt, ...) log_message(module, "ERROR", fmt, ##__VA_ARGS__)
+#define LOG_INFO(module, fmt, ...)  log_message(module, INFO, fmt, ##__VA_ARGS__)
+#define LOG_ERROR(module, fmt, ...) log_message(module, ERROR, fmt, ##__VA_ARGS__)
+
+class Loggable {
+public:
+    virtual const char* module_name() const = 0;
+
+    void log_info(const char* fmt, ...) const {
+        va_list args;
+        va_start(args, fmt);
+        log_message_va(module_name(), INFO, fmt, args);
+        va_end(args);
+    }
+
+    void log_error(const char* fmt, ...) const {
+        va_list args;
+        va_start(args, fmt);
+        log_message_va(module_name(), ERROR, fmt, args);
+        va_end(args);
+    }
+};

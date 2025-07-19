@@ -1,8 +1,8 @@
 #include "pdproxy.hpp"
 #include <cstring>
 
-PDProxy::PDProxy(unsigned short proxy_port, unsigned short http_port, std::string content_dir)
-    : ProxyBase(proxy_port, http_port, std::move(content_dir))
+PDProxy::PDProxy(unsigned short proxy_port)
+    : ProxyBase(proxy_port)
 {
 }
 

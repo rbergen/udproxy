@@ -1,0 +1,58 @@
+body {
+    font-family: Arial, sans-serif;
+    background: #f8f8f8;
+    margin: 0;
+    padding: 0;
+}
+
+.container {
+    max-width: 1000px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 32px;
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+li {
+    margin: 18px 0;
+}
+
+a {
+    color: #1976d2;
+    text-decoration: none;
+    font-size: 1.15em;
+}
+
+a:hover {
+    text-decoration: underline;
+}
+
+/* WebSocket client demo styles */
+#log {
+    background: #222;
+    color: #eee;
+    padding: 1em;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+#status {
+    margin-bottom: 1em;
+}
+
+h2 {
+    text-align: center;
+    color: #333;
+}

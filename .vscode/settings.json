@@ -110,5 +110,6 @@
     },
     "C_Cpp.default.includePath": [
         "./IXWebSocket"
-    ]
+    ],
+    "C_Cpp.default.cppStandard": "c++20"
 }
