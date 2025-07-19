@@ -11,9 +11,7 @@ Multiple proxy modules can run in parallel, each on its own port, and all share 
 Clone the repository and its dependencies:
 
 ```bash
-git clone https://github.com/rbergen/udproxy.git
-cd udproxy
-git submodule update --init --recursive
+git clone --recurse-submodules https://github.com/PlummersSoftwareLLC/udproxy.git
 ```
 
 This will fetch the main source and the embedded `IXWebSocket` library.
