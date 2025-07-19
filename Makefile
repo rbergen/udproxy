@@ -18,7 +18,7 @@ OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
 ifeq ($(UNAME_S), Darwin)
-LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/out/mac/libixwebsocket.a
+LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/libixwebsocket.a
 else
 LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/libixwebsocket.a
 endif
@@ -27,8 +27,7 @@ all: $(TARGET)
 
 $(LIBIXWEBSOCKET):
 ifeq ($(UNAME_S), Darwin)
-	sed -i '' 's/^    -DUSE_TLS=1$$/    -DUSE_ZLIB=1/' $(IXWS_DIR)/tools/build_ios.sh && \
-	mkdir -p $(IXWS_BUILD_DIR) && cd $(IXWS_BUILD_DIR) && ./../tools/build_ios.sh
+	mkdir -p $(IXWS_BUILD_DIR) && cd $(IXWS_BUILD_DIR) && cmake -DUSE_ZLIB=1 .. && make -j
 else
 	mkdir -p $(IXWS_BUILD_DIR) && cd $(IXWS_BUILD_DIR) && cmake -DUSE_ZLIB=1 .. && make -j
 endif
