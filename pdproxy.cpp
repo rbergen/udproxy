@@ -1,8 +1,8 @@
 #include "pdproxy.hpp"
 #include <cstring>
 
-PDProxy::PDProxy(unsigned short proxy_port)
-    : ProxyBase(proxy_port)
+PDProxy::PDProxy(unsigned short port)
+    : ProxyBase(port)
 {
 }
 
