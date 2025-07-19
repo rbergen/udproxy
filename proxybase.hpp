@@ -8,25 +8,7 @@
 #include "json.hpp"
 #include "httplib.h"
 #include <ixwebsocket/IXWebSocketServer.h>
-#include <ctime>
-#include <cstdarg>
-#include <cstdio>
-
-inline void log_message(const char* module, const char* level, const char* fmt, ...) {
-    FILE* out = (level[0] == 'E') ? stderr : stdout;
-    char ts[32];
-    std::time_t t = std::time(nullptr);
-    std::strftime(ts, sizeof(ts), "%Y-%m-%d %H:%M:%S", std::localtime(&t));
-    std::fprintf(out, "[%s] [%s] [%s] ", ts, level, module);
-    va_list args;
-    va_start(args, fmt);
-    std::vfprintf(out, fmt, args);
-    va_end(args);
-    std::fprintf(out, "\n");
-}
-
-#define LOG_INFO(module, fmt, ...) log_message(module, "INFO", fmt, ##__VA_ARGS__)
-#define LOG_ERROR(module, fmt, ...) log_message(module, "ERROR", fmt, ##__VA_ARGS__)
+#include "logging.hpp"
 
 class ProxyBase {
 public:

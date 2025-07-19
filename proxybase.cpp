@@ -34,14 +34,14 @@ ProxyBase::~ProxyBase()
 void ProxyBase::log_info(const char* fmt, ...) const {
     va_list args;
     va_start(args, fmt);
-    log_message(module_name(), "INFO", fmt, args);
+    log_message_va(module_name(), "INFO", fmt, args);
     va_end(args);
 }
 
 void ProxyBase::log_error(const char* fmt, ...) const {
     va_list args;
     va_start(args, fmt);
-    log_message(module_name(), "ERROR", fmt, args);
+    log_message_va(module_name(), "ERROR", fmt, args);
     va_end(args);
 }
 
