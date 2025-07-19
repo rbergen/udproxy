@@ -1,11 +1,11 @@
 # udproxy
-   __  ______  ____                       
+```   __  ______  ____                       
   / / / / __ \/ __ \_________  _  ____  __
  / / / / / / / /_/ / ___/ __ \| |/_/ / / /
 / /_/ / /_/ / ____/ /  / /_/ />  </ /_/ / 
 \____/_____/_/   /_/   \____/_/|_|\__, /  
-                                 /____/   
-
+                                 /____/ 
+```
 ## Overview
 
 **udproxy** is a modular proxy and monitoring tool for PDP-11 emulation and hardware projects. It listens for UDP packets containing PDP-11 state, translates them to JSON, and broadcasts them to connected WebSocket clients. The project includes a lightweight web server for serving dashboards and client pages, allowing real-time visualization and interaction via modern browsers.
