@@ -1,36 +1,50 @@
-# Simple Makefile for pdproxy (UDP→WebSocket Proxy, C++20, header-only deps)
+# Makefile for pdproxy (UDP→WebSocket Proxy, C++20)
 
 CXX ?= c++
-CXXFLAGS = -std=c++20 -Wall -O2 -I. -I./IXWebSocket
 
-LDFLAGS = -lpthread -lz
+IXWS_DIR = ./IXWebSocket
+IXWS_BUILD_DIR = $(IXWS_DIR)/build
 
-IXWS_SRC = \
-    IXWebSocket/ixwebsocket/IXWebSocketServer.cpp \
-    IXWebSocket/ixwebsocket/IXWebSocket.cpp \
-    IXWebSocket/ixwebsocket/IXNetSystem.cpp \
-    IXWebSocket/ixwebsocket/IXSocket.cpp \
-    IXWebSocket/ixwebsocket/IXDNSLookup.cpp \
-    IXWebSocket/ixwebsocket/IXWebSocketPerMessageDeflate.cpp \
-    IXWebSocket/ixwebsocket/IXWebSocketHandshake.cpp \
-    IXWebSocket/ixwebsocket/IXWebSocketHttpHeaders.cpp \
-    IXWebSocket/ixwebsocket/IXWebSocketTransport.cpp \
-    IXWebSocket/ixwebsocket/IXWebSocketSendState.cpp
+UNAME_S := $(shell uname -s)
 
-SOURCES = main.cpp pdproxy.cpp $(IXWS_SRC)
-TARGET = pdproxy
+CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I. -I$(IXWS_DIR)
+LDFLAGS = -L$(IXWS_BUILD_DIR) -lixwebsocket -lpthread -lz
+
+DEP_DIR = dep
+SOURCES = main.cpp pdproxy.cpp proxybase.cpp
+TARGET = udproxy
 
 OBJS = $(SOURCES:.cpp=.o)
+DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
+
+ifeq ($(UNAME_S), Darwin)
+LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/out/mac/libixwebsocket.a
+else
+LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/libixwebsocket.a
+endif
 
 all: $(TARGET)
 
-$(TARGET): $(OBJS)
-	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(TARGET)
+$(LIBIXWEBSOCKET):
+ifeq ($(UNAME_S), Darwin)
+	sed -i '' 's/^    -DUSE_TLS=1$$/    -DUSE_ZLIB=1/' $(IXWS_DIR)/tools/build_ios.sh && \
+	mkdir -p $(IXWS_BUILD_DIR) && cd $(IXWS_BUILD_DIR) && ./../tools/build_ios.sh
+else
+	mkdir -p $(IXWS_BUILD_DIR) && cd $(IXWS_BUILD_DIR) && cmake -DUSE_ZLIB=1 .. && make -j
+endif
 
-main.o: main.cpp pdproxy.hpp
-pdproxy.o: pdproxy.cpp pdproxy.hpp
+$(TARGET): $(OBJS) $(LIBIXWEBSOCKET)
+	$(CXX) $(CXXFLAGS) $(OBJS) $(LDFLAGS) -o $(TARGET)
 
 clean:
 	rm -f $(TARGET) $(OBJS)
 
+$(DEP_DIR):
+	@mkdir -p $(DEP_DIR)
+
+%.o: %.cpp | $(DEP_DIR)
+	$(CXX) $(CXXFLAGS) -c $< -o $@ -MF $(DEP_DIR)/$(@:.o=.d)
+
 .PHONY: all clean
+
+-include $(DEPS)

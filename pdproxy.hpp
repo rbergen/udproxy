@@ -1,25 +1,10 @@
 #pragma once
-#include <string>
-#include <span>
-#include "json.hpp"
-#include <ixwebsocket/IXWebSocketServer.h>
-#include <ixwebsocket/IXNetSystem.h>
-#include <thread>
-#include <atomic>
-#include <vector>
+#include "proxybase.hpp"
 
-class PDProxy
-{
+class PDProxy : public ProxyBase {
 public:
-    PDProxy(unsigned short udp_port, unsigned short ws_port);
-    ~PDProxy();
-    void run(); // blocks
-    std::string udp_packet_to_json(std::span<const char> data);
-    void graceful_shutdown();
-private:
-    void udp_loop();
-    unsigned short udp_port;
-    ix::WebSocketServer server;
-    std::thread udp_thread;
-    std::atomic<bool> stop_flag;
+    PDProxy(unsigned short proxy_port, unsigned short http_port, std::string content_dir);
+    ~PDProxy() override = default;
+    std::string udp_packet_to_json(std::span<const char> data) override;
+    const char* module_name() const override { return "PDProxy"; }
 };

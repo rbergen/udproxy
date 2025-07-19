@@ -107,5 +107,8 @@
         "typeindex": "cpp",
         "valarray": "cpp",
         "variant": "cpp"
-    }
+    },
+    "C_Cpp.default.includePath": [
+        "./IXWebSocket"
+    ]
 }
