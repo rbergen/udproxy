@@ -7,6 +7,11 @@
 #include <csignal>
 #include <thread>
 
+#define WEBSERVER_PORT 4080
+#define CONTENT_DIR "wwwroot"
+#define PDPROXY_NAME "pdproxy"
+#define PDPROXY_PORT 4000
+
 static std::vector<std::unique_ptr<ProxyBase>> proxies;
 static std::unique_ptr<WebServer> webserver;
 
@@ -18,16 +23,24 @@ void signal_handler(int)
         webserver->stop();
 }
 
+void add_proxy(const std::string& name, unsigned short port)
+{
+    webserver->add_proxy_port(name, port);
+    auto proxy = std::make_unique<PDProxy>(port);
+    proxies.push_back(std::move(proxy));
+}
+
 int main()
 {
     std::signal(SIGINT, signal_handler);
 
-    proxies.emplace_back(std::make_unique<PDProxy>(4000));
-    // Example: add more proxies with different ports if needed
-    // proxies.emplace_back(std::make_unique<PDProxy>(5000);
+    // Create shared webserver
+    webserver = std::make_unique<WebServer>(WEBSERVER_PORT, CONTENT_DIR);
 
-    // Start shared webserver
-    webserver = std::make_unique<WebServer>(4080, "wwwroot");
+    add_proxy(PDPROXY_NAME, PDPROXY_PORT);
+    // Example: add more proxies with different ports if needed
+    // add_proxy("proxy2", 5000);
+
     auto webserver_thread = std::thread([]() { webserver->run(); });
 
     // Run all proxies in parallel
