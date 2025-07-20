@@ -112,7 +112,10 @@ void ProxyBase::udp_loop()
 
         std::string json = udp_packet_to_json(std::span<const char>(buffer.data(), n));
         if (json.empty())
+        {
+            log_error("Failed to parse UDP packet (%zd bytes) - packet cannot be processed", n);
             continue;
+        }
 
         for (auto& client : server.getClients())
         {

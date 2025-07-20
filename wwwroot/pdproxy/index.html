@@ -447,6 +447,9 @@ const statusLabel = document.getElementById('status');
 let lastMessageTime = null;
 let statusInterval = null;
 let ws = null;
+let frameCount = 0;
+let fps = 0;
+let fpsInterval = null;
 
 function formatDuration(ms) {
     const tenths = Math.floor((ms % 1000) / 100);
@@ -466,10 +469,18 @@ function formatDuration(ms) {
 function updateStatusLabel() {
     if (lastMessageTime) {
         const ago = Date.now() - lastMessageTime;
-        statusLabel.textContent = `Connected, time since last state: ${formatDuration(ago)}`;
+        statusLabel.textContent = `Connected, time since last state: ${formatDuration(ago)} (${fps} FPS)`;
     } else {
         statusLabel.textContent = 'Connected, waiting for panel state...';
     }
+}
+
+function startFpsCounter() {
+    if (fpsInterval) clearInterval(fpsInterval);
+    fpsInterval = setInterval(() => {
+        fps = frameCount;
+        frameCount = 0;
+    }, 1000);
 }
 
 fetch('/config.json')
@@ -487,20 +498,24 @@ fetch('/config.json')
 
     ws.onopen = () => {
         statusLabel.textContent = 'Connected';
-        statusInterval = setInterval(updateStatusLabel, 100); // update every 100ms for tenths
+        statusInterval = setInterval(updateStatusLabel, 1000); // update every 100ms for tenths
+        startFpsCounter();
     };
     ws.onclose = () => {
         statusLabel.textContent = 'Disconnected';
         clearInterval(statusInterval);
+        clearInterval(fpsInterval);
     };
     ws.onerror = (e) => {
         statusLabel.textContent = 'WebSocket error';
         clearInterval(statusInterval);
+        clearInterval(fpsInterval);
     };
     ws.onmessage = (event) => {
         try {
             panel.state = JSON.parse(event.data);
             lastMessageTime = Date.now();
+            frameCount++;
             updateLights();
             updateStatusLabel();
         } catch (e) {

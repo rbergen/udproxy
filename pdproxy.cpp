@@ -48,9 +48,6 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     panel_packet_header header;
     memcpy(&header, data.data(), sizeof(panel_packet_header));
 
-    log_info("Packet header: byte_count=%u, byte_flags=0x%08x",
-             header.pp_byte_count, header.pp_byte_flags);
-
     // Check if we have enough data for the complete packet
     size_t expected_total_size = sizeof(panel_packet_header) + header.pp_byte_count;
     if (data.size() < expected_total_size)
@@ -67,8 +64,6 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
                   header.pp_byte_count, sizeof(pdp_panel_state));
         return "";
     }
-
-    log_info("Successfully parsed packet header, extracting PDP panel state");
 
     // Parse the PDP panel state
     pdp_panel_state panel_state;
@@ -93,9 +88,6 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     json["addr16"]        = !(addr18 || addr22);
     json["addr18"]        = addr18;
     json["addr22"]        = addr22;
-
-    log_info("Generated JSON for PDP state: address=0x%06x, data=0x%04x, psw=0x%04x",
-             panel_state.ps_address & 0x3fffff, panel_state.ps_data, panel_state.ps_psw);
 
     return json.dump();
 }
