@@ -465,9 +465,9 @@ function formatDuration(ms) {
 function updateStatusLabel() {
     if (lastMessageTime) {
         const ago = Date.now() - lastMessageTime;
-        statusLabel.textContent = `Connected, last update: ${formatDuration(ago)} ago`;
+        statusLabel.textContent = `Connected, time since last state: ${formatDuration(ago)}`;
     } else {
-        statusLabel.textContent = 'Connected, waiting for panel status...';
+        statusLabel.textContent = 'Connected, waiting for panel state...';
     }
 }
 
