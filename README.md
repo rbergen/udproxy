@@ -64,3 +64,7 @@ This will fetch the main source and the embedded `IXWebSocket` library.
 - `webserver.hpp/cpp` — Lightweight HTTP server
 - `wwwroot/` — Static web content (dashboard, client pages)
 - `IXWebSocket/` — WebSocket library (as a submodule)
+
+## Credits
+
+The PDP virtual panel that is displayed in the browser, is based on the [Javascript PDP 11/70 Emulator](https://github.com/paulnank/pdp11-js) written by Paul Nankervis.
