@@ -442,10 +442,11 @@ is acknowledged in any modified source code
 <script src="https://unpkg.com/fzstd@0.1.1"></script>
 <script src="panel.js"></script>
 <script>
-const ws = new WebSocket('ws://localhost:4000');
+
 const statusLabel = document.getElementById('status');
 let lastMessageTime = null;
 let statusInterval = null;
+let ws = null;
 
 function formatDuration(ms) {
     const tenths = Math.floor((ms % 1000) / 100);
@@ -471,29 +472,43 @@ function updateStatusLabel() {
     }
 }
 
-ws.onopen = () => {
-    statusLabel.textContent = 'Connected';
-    statusInterval = setInterval(updateStatusLabel, 100); // update every 100ms for tenths
-};
-ws.onclose = () => {
-    statusLabel.textContent = 'Disconnected';
-    clearInterval(statusInterval);
-};
-ws.onerror = (e) => {
-    statusLabel.textContent = 'WebSocket error';
-    clearInterval(statusInterval);
-};
-ws.onmessage = (event) => {
-    try {
-        panel.state = JSON.parse(event.data);
-        lastMessageTime = Date.now();
-        updateLights();
-        updateStatusLabel();
-    } catch (e) {
-        statusLabel.textContent = 'Error parsing message';
-        console.error('Error parsing message:', e);
+fetch('/config.json')
+  .then(r => r.json())
+  .then(cfg => {
+// Extract the last non-empty directory part from the path
+    const pathParts = window.location.pathname.split('/').filter(Boolean);
+    let panelKey = pathParts[pathParts.length - 1];
+    // If the last part is a file (contains a dot), use the previous part
+    if (panelKey.includes('.')) {
+      panelKey = pathParts[pathParts.length - 2];
     }
-};
+    const port = cfg.proxyPorts[panelKey];
+    const wsUrl = `ws://${location.hostname}:${port}`;    ws = new WebSocket(wsUrl);
+
+    ws.onopen = () => {
+        statusLabel.textContent = 'Connected';
+        statusInterval = setInterval(updateStatusLabel, 100); // update every 100ms for tenths
+    };
+    ws.onclose = () => {
+        statusLabel.textContent = 'Disconnected';
+        clearInterval(statusInterval);
+    };
+    ws.onerror = (e) => {
+        statusLabel.textContent = 'WebSocket error';
+        clearInterval(statusInterval);
+    };
+    ws.onmessage = (event) => {
+        try {
+            panel.state = JSON.parse(event.data);
+            lastMessageTime = Date.now();
+            updateLights();
+            updateStatusLabel();
+        } catch (e) {
+            statusLabel.textContent = 'Error parsing message';
+            console.error('Error parsing message:', e);
+        }
+    };
+  });
 
 initialize();
 </script>
