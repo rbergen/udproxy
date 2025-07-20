@@ -75,40 +75,24 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     memcpy(&panel_state, data.data() + sizeof(panel_packet_header), sizeof(pdp_panel_state));
 
     int mode = (panel_state.ps_psw >> 14) & 0x3;
-    bool is_user_mode = (mode == 3);
-    bool is_super_mode = (mode == 1);
-    bool is_kernel_mode = (mode == 0);
-    bool data_on = (panel_state.ps_psw & (1 << 13));
     bool addr22 = (panel_state.ps_mmr3 & (1 << 4));
     bool addr18 = !addr22 && (panel_state.ps_mmr3 & (1 << 5));
-    bool addr16 = !(addr22 || addr18);
-    bool prog_phy = !(panel_state.ps_mmr0 & 1);
 
     nlohmann::json json;
     json["address"]       = panel_state.ps_address & 0x3fffff; // Mask to 22 bits
     json["data"]          = panel_state.ps_data;
-    json["parity_error"]  = (panel_state.ps_mser & 0x7380) != 0;
-    json["address_error"] = (panel_state.ps_cpu_err & 0xfc00) != 0;
+    json["parity_error"]  = (panel_state.ps_mser & 0x8000) != 0;
+    json["address_error"] = (panel_state.ps_cpu_err & 0x2000) != 0;
     json["run"]           = true;
     json["pause"]         = false;
     json["master"]        = true;
-    json["user_mode"]     = is_user_mode;
-    json["super_mode"]    = is_super_mode;
-    json["kernel_mode"]   = is_kernel_mode;
-    json["data_on"]       = data_on;
-    json["addr16"]        = addr16;
+    json["user_mode"]     = (mode == 3);
+    json["super_mode"]    = (mode == 1);
+    json["kernel_mode"]   = (mode == 0);
+    json["data_on"]       = (panel_state.ps_psw & (1 << 13)) != 0;
+    json["addr16"]        = !(addr18 || addr22);
     json["addr18"]        = addr18;
     json["addr22"]        = addr22;
-    json["user_d"]        = !prog_phy && is_user_mode && data_on;
-    json["user_i"]        = !prog_phy && is_user_mode && !data_on;
-    json["super_d"]       = !prog_phy && is_super_mode && data_on;
-    json["super_i"]       = !prog_phy && is_super_mode && !data_on;
-    json["kernel_d"]      = !prog_phy && is_kernel_mode && data_on;
-    json["kernel_i"]      = !prog_phy && is_kernel_mode && !data_on;
-    json["cons_phy"]      = false;
-    json["prog_phy"]      = prog_phy;
-    json["parity_high"]   = !!(panel_state.ps_mser & (1 << 9));
-    json["parity_low"]    = !!(panel_state.ps_mser & (1 << 8));
 
     log_info("Generated JSON for PDP state: address=0x%06x, data=0x%04x, psw=0x%04x",
              panel_state.ps_address & 0x3fffff, panel_state.ps_data, panel_state.ps_psw);

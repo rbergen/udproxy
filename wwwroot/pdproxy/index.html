@@ -1,38 +1,501 @@
 <!DOCTYPE html>
+<!--
+PDP-11/70 Panel
+
+Based on the Javascript PDP 11/70 Emulator v4.0 written by Paul Nankervis
+
+This code may be used freely provided the original author name (Paul Nankervis)
+is acknowledged in any modified source code
+-->
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <title>WebSocket Client Demo</title>
-    <link rel="stylesheet" href="../style.css">
+<meta charset="UTF-8">
+<title>PDP-11/70 Panel</title>
+<meta name="description" content="PDP-11/70 Panel">
+<meta name="keywords" content="PDP,PDP-11,11/70">
+<!-- Google Fonts: Orbitron for retro LED segment style -->
+<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <h1>WebSocket Client Demo</h1>
-        <div id="status">Connecting...</div>
-        <div id="log"></div>
-        <script>
-            const ws = new WebSocket('ws://localhost:4000');
-            const status = document.getElementById('status');
-            const log = document.getElementById('log');
-
-            ws.onopen = () => {
-                status.textContent = 'Connected to ws://localhost:4000';
-            };
-            ws.onclose = () => {
-                status.textContent = 'Disconnected';
-            };
-            ws.onerror = (e) => {
-                status.textContent = 'WebSocket error';
-            };
-            ws.onmessage = (event) => {
-                try {
-                    const obj = JSON.parse(event.data);
-                    log.textContent += JSON.stringify(obj, null, 2) + '\n\n';
-                } catch (e) {
-                    log.textContent += event.data + '\n\n';
-                }
-            };
-        </script>
+<div class=frame>
+  <div class=decBase>
+    <span class=smallSpace></span>
+    <span class=decLetter>d</span>
+    <span class=decLetter>i</span>
+    <span class=decLetter>g</span>
+    <span class=decLetter>i</span>
+    <span class=decLetter>t</span>
+    <span class=decLetter>a</span>
+    <span class=decLetter>l</span>
+    <span class=smallSpace></span>
+    <span class=decName>digital equipment corporation &bull; maynard, massachusetts</span>
+  </div>
+  <div class=sideEdges></div>
+  <div class=topEdge></div>
+  <div class=switchBevel></div>
+  <div class=switchPanel>
+    <div class=panel>
+      <div class=blankLine></div>
+      <div class=blankLine></div>
+      <div class=space></div>
+      <div class=floatLeft>
+        <div class=clear>
+          <div class=floatLeft>
+            <div class=clear>
+              <span class=logo>
+                <img src="pdp11-70.svg" alt="pdp11-70" width=100%>
+              </span>
+              <div class=floatRight>
+                <span class="statusBlock roundLeft">
+                  <div class="statusLabel1">PAR</div>
+                  <span class=statusLabel2>ERR <div id=s11 class=mainLed></div>
+                  </span>
+                </span>
+                <span class="statusBlock margin">
+                  <div class="statusLabel1">ADRS</div>
+                  <span class=statusLabel2>ERR <div id=s10 class=mainLed></div>
+                  </span>
+                </span>
+                <span class=statusBlock>
+                  <div class="statusLabel1">RUN</div>
+                  <span class=statusLabel2>&nbsp; <div id=s9 class=mainLed></div>
+                  </span>
+                </span>
+                <span class=statusBlock>
+                  <div class="statusLabel1">PAUSE</div>
+                  <span class=statusLabel2>&nbsp; <div id=s8 class=mainLed></div>
+                  </span>
+                </span>
+                <span class="statusBlock margin">
+                  <div class="statusLabel1">MASTER</div>
+                  <span class=statusLabel2>&nbsp; <div id=s7 class=mainLed></div>
+                  </span>
+                </span>
+                <span class=statusBlock>
+                  <div class="statusLabel1">USER</div>
+                  <span class=statusLabel2>&nbsp; <div id=s6 class=mainLed></div>
+                  </span>
+                </span>
+                <span class=statusBlock>
+                  <div class="statusLabel1">SUPER</div>
+                  <span class=statusLabel2>&nbsp; <div id=s5 class=mainLed></div>
+                  </span>
+                </span>
+                <span class="statusBlock margin">
+                  <div class="statusLabel1">KERNEL</div>
+                  <span class=statusLabel2>&nbsp; <div id=s4 class=mainLed></div>
+                  </span>
+                </span>
+                <span class=statusBlock>
+                  <div class="statusLabel1">DATA</div>
+                  <span class=statusLabel2>&nbsp; <div id=s3 class=mainLed></div>
+                  </span>
+                </span>
+                <span class="statusBlock triple roundRight">
+                  <div class="statusLabel1">ADDRESSING</div>
+                  <span class=statusLabel2>16 <div id=s2 class=mainLed></div>
+                  </span>
+                  <span class=statusLabel2>18 <div id=s1 class=mainLed></div>
+                  </span>
+                  <span class=statusLabel2>22 <div id=s0 class=mainLed></div>
+                  </span>
+                </span>
+                <div class=smallLine></div>
+              </div>
+            </div>
+            <div class=clear>
+              <span class="ledBlock single">
+                <div class="ledBase red roundTopLeft"></div>
+                <div class=ledPad>
+                  <div id=a21 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase purple"></div>
+                <div class=ledPad>
+                  <div id=a20 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a19 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a18 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase red"></div>
+                <div class=ledPad>
+                  <div id=a17 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a16 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a15 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase purple"></div>
+                <div class=ledPad>
+                  <div id=a14 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a13 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a12 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase red"></div>
+                <div class=ledPad>
+                  <div id=a11 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a10 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a9 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase purple"></div>
+                <div class=ledPad>
+                  <div id=a8 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a7 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a6 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase red"></div>
+                <div class=ledPad>
+                  <div id=a5 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a4 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a3 class=mainLed></div>
+                </div>
+              </span>
+              <span class=ledBlock>
+                <div class="ledBase purple textRight roundTopRight">ADDRESS &nbsp;</div>
+                <div class=ledPad>
+                  <div id=a2 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a1 class=mainLed></div>
+                </div>
+                <div class=ledPad>
+                  <div id=a0 class=mainLed></div>
+                </div>
+              </span>
+            </div>
+            <div class=blankLine></div>
+            <div class=clear>
+              <div class=lockPanel>
+                <div class=floatLeft>POWER</div>
+                <div class=floatRight>LOCK</div>
+                <div class=lock>
+                  <div id=key class=key></div>
+                </div>
+                <div class=atBottom>OFF</div>
+              </div>
+              <div class=floatRight>
+                <span class="ledBlock double">
+                  <div class="ledBase black roundTop">PARITY</div>
+                  <div class=ledPad>HIGH <div id=s13 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>LOW <div id=s12 class=mainLed></div>
+                  </div>
+                </span>
+                <span class=space></span>
+                <span class="ledBlock single">
+                  <div class="ledBase red roundTopLeft"></div>
+                  <div class=ledPad>
+                    <div id=d15 class=mainLed></div>
+                  </div>
+                </span>
+                <span class=ledBlock>
+                  <div class="ledBase purple">
+                    <div class=nick></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d14 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d13 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d12 class=mainLed></div>
+                  </div>
+                </span>
+                <span class=ledBlock>
+                  <div class="ledBase red">
+                    <div class=nick></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d11 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d10 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d9 class=mainLed></div>
+                  </div>
+                </span>
+                <span class=ledBlock>
+                  <div class="ledBase purple">
+                    <div class=nick></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d8 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d7 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d6 class=mainLed></div>
+                  </div>
+                </span>
+                <span class=ledBlock>
+                  <div class="ledBase red"></div>
+                  <div class=ledPad>
+                    <div id=d5 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d4 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d3 class=mainLed></div>
+                  </div>
+                </span>
+                <span class=ledBlock>
+                  <div class="ledBase purple textRight roundTopRight">DATA &nbsp;</div>
+                  <div class=ledPad>
+                    <div id=d2 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d1 class=mainLed></div>
+                  </div>
+                  <div class=ledPad>
+                    <div id=d0 class=mainLed></div>
+                  </div>
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class=space></div>
+          <div class=floatLeft>
+            <div class=rotaryTopPanel>
+              <span class=rotaryTable>
+                <div class=rotaryTableRow>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s20></span>USER D
+                  </div>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s21></span>USER I
+                  </div>
+                </div>
+                <div class=rotaryTableRow>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s18></span>SUPER D
+                  </div>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s19></span>SUPER I
+                  </div>
+                </div>
+                <div class=rotaryTableRow>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s16></span>KERNEL D
+                  </div>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s17></span>KERNEL I
+                  </div>
+                </div>
+                <div class=rotaryTableRow>
+                  <div class=rotaryTableCell>
+                    <div class=rotaryLed id=s14></div>CONS PHY
+                  </div>
+                  <div class=rotaryTableCell>
+                    <div class=rotaryLed id=s15></div>PROG PHY
+                  </div>
+                </div>
+              </span>
+              <span class=rotaryBase>
+                <div class=rotarySwitch>
+                  <div class=rotaryCentre></div>
+                </div>
+              </span>
+            </div>
+            <div class=blankLine></div>
+            <div class=rotaryBottomPanel>
+              <span class=rotaryTable>
+                <div class=rotaryTableRow>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s22></span>DATA<br>PATHS
+                  </div>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s23></span>&micro; ADRS<br>FPP/CPU
+                  </div>
+                </div>
+                <div class=rotaryTableRow>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s24></span>BUS REG
+                  </div>
+                  <div class=rotaryTableCell>
+                    <span class=rotaryLed id=s25></span>DISPLAY<br>REGISTER
+                  </div>
+                </div>
+              </span>
+              <span class=rotaryBase>
+                <div class=rotarySwitch>
+                  <div class=rotaryCentre></div>
+                </div>
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class=switchLabels>
+          <span class="switchPad red roundLeft roundRight">21</span>
+          <span class="switchPad purple roundLeft">20</span>
+          <span class="switchPad purple">19</span>
+          <span class="switchPad purple roundRight">18</span>
+          <span class="switchPad red roundLeft">17</span>
+          <span class="switchPad red">16</span>
+          <span class="switchPad red roundRight">15</span>
+          <span class="switchPad purple roundLeft">14</span>
+          <span class="switchPad purple">13</span>
+          <span class="switchPad purple roundRight">12</span>
+          <span class="switchPad red roundLeft">11</span>
+          <span class="switchPad red">10</span>
+          <span class="switchPad red roundRight">9</span>
+          <span class="switchPad purple roundLeft">8</span>
+          <span class="switchPad purple">7</span>
+          <span class="switchPad purple roundRight">6</span>
+          <span class="switchPad red roundLeft">5</span>
+          <span class="switchPad red">4</span>
+          <span class="switchPad red roundRight">3</span>
+          <span class="switchPad purple roundLeft">2</span>
+          <span class="switchPad purple">1</span>
+          <span class="switchPad purple roundRight">0</span>
+          <span class=space></span>
+          <span class="switchPad red roundTop"><span class=multiText>LOAD ADRS</span></span>
+          <span class="switchPad purple roundTop">EXAM</span>
+          <span class="switchPad red roundTop">DEP</span>
+          <span class="switchPad purple roundTop">CONT</span>
+          <span class="switchPad red roundTop">
+            <div class="switchPadHalf">ENABLE</div>
+            <div class="switchPadBar"></div>
+            <div class="switchPadHalf">HALT</div>
+          </span>
+          <span class="switchPad purple roundTop">
+            <div class="switchPadHalf">S INST</div>
+            <div class="switchPadBar"></div>
+            <div class="switchPadHalf">S BUS</div>
+          </span>
+          <span class="switchPad red roundTop">START</span>
+        </div>
+      </div>
     </div>
+    <div class=floatLeft>
+      <span class=space></span>
+      <span class="switch redBase" onClick="setSwitch(this, 21);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 20);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 19);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 18);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 17);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 16);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 15);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 14);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 13);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 12);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 11);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 10);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 9);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 8);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 7);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 6);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 5);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 4);"></span>
+      <span class="switch redBase" onClick="setSwitch(this, 3);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 2);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 1);"></span>
+      <span class="switch purpleBase" onClick="setSwitch(this, 0);"></span>
+      <span class="switch white" onclick="panel.lampTest = 1 - panel.lampTest; moveSwitch(this, panel.lampTest); updateLights();"></span>
+      <span class="switch redBase"></span>
+      <span class="switch purpleBase"></span>
+      <span class="switch redBase"></span>
+      <span class="switch purpleBase"></span>
+      <span class="switch redBase"></span>
+      <span class="switch purpleBase"></span>
+      <span class="switch redBase"></span>
+    </div>
+  </div>
+</div>
+<div id="status">Connecting...</div>
+<script src="https://unpkg.com/fzstd@0.1.1"></script>
+<script src="panel.js"></script>
+<script>
+const ws = new WebSocket('ws://localhost:4000');
+const statusLabel = document.getElementById('status');
+let lastMessageTime = null;
+let statusInterval = null;
+
+function formatDuration(ms) {
+    const tenths = Math.floor((ms % 1000) / 100);
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return `${sec}.${tenths}s`;
+    const min = Math.floor(sec / 60);
+    const s = sec % 60;
+    if (min < 60) return `${min}:${s.toString().padStart(2, '0')}`;
+    const hr = Math.floor(min / 60);
+    const m = min % 60;
+    if (hr < 24) return `${hr}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    const days = Math.floor(hr / 24);
+    const h = hr % 24;
+    return `${days} days, ${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+}
+
+function updateStatusLabel() {
+    if (lastMessageTime) {
+        const ago = Date.now() - lastMessageTime;
+        statusLabel.textContent = `Connected, last update: ${formatDuration(ago)} ago`;
+    } else {
+        statusLabel.textContent = 'Connected, waiting for panel status...';
+    }
+}
+
+ws.onopen = () => {
+    statusLabel.textContent = 'Connected';
+    statusInterval = setInterval(updateStatusLabel, 100); // update every 100ms for tenths
+};
+ws.onclose = () => {
+    statusLabel.textContent = 'Disconnected';
+    clearInterval(statusInterval);
+};
+ws.onerror = (e) => {
+    statusLabel.textContent = 'WebSocket error';
+    clearInterval(statusInterval);
+};
+ws.onmessage = (event) => {
+    try {
+        panel.state = JSON.parse(event.data);
+        lastMessageTime = Date.now();
+        updateLights();
+        updateStatusLabel();
+    } catch (e) {
+        statusLabel.textContent = 'Error parsing message';
+        console.error('Error parsing message:', e);
+    }
+};
+
+initialize();
+</script>
 </body>
 </html>
