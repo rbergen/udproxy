@@ -1,17 +1,19 @@
 # udproxy
-```
-   __  ______  ____                       
+
+```text
+   __  ______  ____
   / / / / __ \/ __ \_________  _  ____  __
  / / / / / / / /_/ / ___/ __ \| |/_/ / / /
-/ /_/ / /_/ / ____/ /  / /_/ />  </ /_/ / 
-\____/_____/_/   /_/   \____/_/|_|\__, /  
-                                 /____/ 
+/ /_/ / /_/ / ____/ /  / /_/ />  </ /_/ /
+\____/_____/_/   /_/   \____/_/|_|\__, /
+                                 /____/
 ```
+
 ## Overview
 
 **udproxy** is a modular proxy and monitoring tool for PDP-11 emulation and hardware projects. It listens for UDP packets containing PDP-11 state, translates them to JSON, and broadcasts them to connected WebSocket clients. The project includes a lightweight web server for serving dashboards and client pages, allowing real-time visualization and interaction via modern browsers.
 
-Multiple proxy modules can run in parallel, each on its own port, and all share a single web server for static content. The project uses [IXWebSocket](https://github.com/machinezone/IXWebSocket) for WebSocket support and [cpp-httplib](https://github.com/yhirose/cpp-httplib) for HTTP serving.
+Multiple proxy modules can run in parallel, each on its own port, and all share a single web server for static content.
 
 ## Getting the Source Code
 
@@ -50,7 +52,7 @@ This will fetch the main source and the embedded `IXWebSocket` library.
 
 2. Open your browser and navigate to:
 
-   ```
+   ```text
    http://localhost:4080/
    ```
 
@@ -67,4 +69,6 @@ This will fetch the main source and the embedded `IXWebSocket` library.
 
 ## Credits
 
-The PDP virtual panel that is displayed in the browser, is based on the [Javascript PDP 11/70 Emulator](https://github.com/paulnank/pdp11-js) written by Paul Nankervis.
+- The PDP virtual panel that is displayed in the browser, is based on the [Javascript PDP 11/70 Emulator](https://github.com/paulnank/pdp11-js) written by Paul Nankervis.
+- WebSocket support is provided through [IXWebSocket](https://github.com/machinezone/IXWebSocket).
+- The HTTP serving is implemented using [cpp-httplib](https://github.com/yhirose/cpp-httplib).
