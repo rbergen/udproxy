@@ -14,11 +14,11 @@ UDP_PORT = 4000
 packet_fields = {
     "pp_byte_count": 16,
     "pp_byte_flags": 1,
-    "ps_address": 0x1F4669,
-    "ps_data": 0xABCD,
+    "ps_address": 0x15555,
+    "ps_data": 0xAAAA,
     "ps_psw": 0x0200,
     "ps_mser": 0x0001,
-    "ps_cpu_err": 0xFC00,
+    "ps_cpu_err": 0x0000,
     "ps_mmr0": 0x7000,
     "ps_mmr3": 0x0003,
 }
