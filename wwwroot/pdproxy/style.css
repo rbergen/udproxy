@@ -20,21 +20,6 @@ is acknowledged in any modified source code
   background: linear-gradient(#c3bcaa, #a39c8a);
   -webkit-text-size-adjust: none;
   text-size-adjust: none;
-  margin: 40px auto;
-  display: block;
-}
-#status {
-  text-align: center;
-  margin: 32px auto;
-  font-family: 'Orbitron', monospace;
-  font-size: 2em;
-  color: #eaff00;
-  letter-spacing: 0.1em;
-  text-shadow: 0 0 8px #eaff00, 0 0 2px #333;
-  background: #222;
-  padding: 12px 32px;
-  border-radius: 8px;
-  width: fit-content;
 }
 
 .decBase {
@@ -540,4 +525,19 @@ is acknowledged in any modified source code
 
 .white {
   background-color: #f0e6d9;
+}
+
+#status {
+  text-align: left;
+  margin: 32px 0 0 0;
+  font-family: 'Orbitron', monospace;
+  font-size: 1em;
+  color: #39ff14; /* LED green */
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 8px #39ff14, 0 0 2px #333; /* glowing effect */
+  background: #222;
+  padding: 12px 32px;
+  border-radius: 8px;
+  width: calc(var(--unitWidth) * 272); /* match .frame width */
+  box-sizing: border-box; /* include padding in width */
 }

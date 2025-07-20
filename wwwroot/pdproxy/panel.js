@@ -29,7 +29,6 @@ var panel = {
 
 function moveSwitch(id, position) { // -1 up  0 centre   1 down  - will move 5/16 units
     "use strict";
-    var style = window.getComputedStyle(id, null);
     id.style.borderTopWidth = 'calc(var(--unitHeight) * ' + (8 + 4 * position) + ')';
     id.style.borderBottomWidth = 'calc(var(--unitHeight) * ' + (7 - 4 * position) + ')';
 }
@@ -109,7 +108,7 @@ function updateLights() {
         addressLights = panel.state.address & 0x3fffff; // Mask to 22 bits
         displayLights = panel.state.data & 0xffff; // Mask to 16 bits
 
-        // rotary1 rotary0 PAR PE AE Rn Pa Ma Us Su Ke Da 16 18 22
+        // PE AE Rn Pa Ma Us Su Ke Da 16 18 22
         statusLights |=
               (panel.state.parity_error ? 0x800 : 0) // Parity error
             | (panel.state.address_error ? 0x400 : 0) // Address error
