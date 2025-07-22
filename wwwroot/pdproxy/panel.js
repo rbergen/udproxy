@@ -23,7 +23,8 @@ var panel = {
     rotary1: 0, // rotary switch 1 position
     statusId: [], //  DOM id's for statusLights
     statusLights: 0x3ffffff, // current state of statusLights (s0-s25)
-    state: null,
+    old_state: null, // previous state of panel
+    state: null, // current state of panel, as received from WebSocket
     step: 0 // S Inst / S Bus switch position
 };
 
@@ -60,6 +61,12 @@ function initPanel(idArray, idName, idCount) {
         initVal = initVal * 2 + 1;
     }
     return initVal;
+}
+
+function setPanelState(newState) {
+    "use strict";
+    panel.old_state = panel.state; // Save old state
+    panel.state = newState; // Set new state
 }
 
 // There are three groups of lights (LEDs/Globes):-
@@ -108,17 +115,19 @@ function updateLights() {
         addressLights = panel.state.address & 0x3fffff; // Mask to 22 bits
         displayLights = panel.state.data & 0xffff; // Mask to 16 bits
 
+        // We assume that the data space was accessed if the data field has changed
+        let data_space = !panel.old_state || (displayLights ^ (panel.old_state.data & 0xffff)) !== 0;
+
         // PE AE Rn Pa Ma Us Su Ke Da 16 18 22
         statusLights |=
               (panel.state.parity_error ? 0x800 : 0) // Parity error
             | (panel.state.address_error ? 0x400 : 0) // Address error
-            | (panel.state.run ? 0x200 : 0) // Run
-            | (panel.state.pause ? 0x100 : 0) // Pause
-            | (panel.state.master ? 0x80 : 0) // Master
+            | (0x200) // Run - on, otherwise we wouldn't be here. Likewise, Pause is off
+            | (0x80) // Master - on, which means we assume DMA I/O is not a thing
             | (panel.state.user ? 0x40 : 0) // User
             | (panel.state.super ? 0x20 : 0) // Super
             | (panel.state.kernel ? 0x10 : 0) // Kernel
-            | (panel.state.data_on ? 0x8 : 0) // Data
+            | (data_space ? 0x8 : 0) // Data space access
             | (panel.state.addr16 ? 0x4 : 0) // Address mode 16
             | (panel.state.addr18 ? 0x2 : 0) // Address mode 18
             | (panel.state.addr22 ? 0x1 : 0); // Address mode 22

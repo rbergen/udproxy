@@ -513,7 +513,7 @@ fetch('/config.json')
     };
     ws.onmessage = (event) => {
         try {
-            panel.state = JSON.parse(event.data);
+            setPanelState(JSON.parse(event.data));
             lastMessageTime = Date.now();
             frameCount++;
             updateLights();

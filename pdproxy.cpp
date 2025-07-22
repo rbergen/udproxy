@@ -69,22 +69,30 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     pdp_panel_state panel_state;
     memcpy(&panel_state, data.data() + sizeof(panel_packet_header), sizeof(pdp_panel_state));
 
-    int mode = (panel_state.ps_psw >> 14) & 0x3;
-    bool addr22 = (panel_state.ps_mmr3 & (1 << 4));
-    bool addr18 = !addr22 && (panel_state.ps_mmr3 & (1 << 5));
+    int mode = (panel_state.ps_psw >> 14) & 0x3; // PSW bits 15 and 14: Processor mode
+    bool addr22 = (panel_state.ps_mmr3 & (1 << 4)) != 0; // MMR3 bit 4: 22-bit addressing
+    bool addr18 = (panel_state.ps_mmr0 & (1 << 0)) && !addr22; // MMR0 bit 0: 18-bit addressing if not in 22-bit mode
 
     nlohmann::json json;
     json["address"]       = panel_state.ps_address & 0x3fffff; // Mask to 22 bits
     json["data"]          = panel_state.ps_data;
-    json["parity_error"]  = (panel_state.ps_mser & 0x8000) != 0;
-    json["address_error"] = (panel_state.ps_cpu_err & 0x2000) != 0;
-    json["run"]           = true;
-    json["pause"]         = false;
-    json["master"]        = true;
+
+    json["parity_error"]  = (panel_state.ps_mser & (
+        (1 << 7) | // CACHE HB DATA PARITY ERROR
+        (1 << 6) | // CACHE LB DATA PARITY ERROR
+        (1 << 5) | // CACHE CPU TAG PARITY ERROR
+        (1 << 4)   // CACHE DMA TAG PARITY ERROR
+    )) != 0;
+
+    json["address_error"] = (panel_state.ps_cpu_err & (
+        (1 << 6) | // ADDRESS ERROR
+        (1 << 5)   // NONEXISTENT MEMORY
+    )) != 0;
+
     json["user_mode"]     = (mode == 3);
     json["super_mode"]    = (mode == 1);
     json["kernel_mode"]   = (mode == 0);
-    json["data_on"]       = (panel_state.ps_psw & (1 << 13)) != 0;
+
     json["addr16"]        = !(addr18 || addr22);
     json["addr18"]        = addr18;
     json["addr22"]        = addr22;
