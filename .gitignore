@@ -2,3 +2,5 @@
 dep/
 *.d
 udproxy
+.DS_Store
+wwwroot/.DS_Store

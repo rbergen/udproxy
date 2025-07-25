@@ -101,8 +101,11 @@ function updateLights() {
             }
             if (newMask & (1 << id)) {
                 idArray[id].visibility = 'visible';
+                idArray[id].opacity = '1';
+                idArray[id].transition = '';
             } else {
-                idArray[id].visibility = 'hidden';
+                idArray[id].transition = 'opacity 150ms ease-out';
+                idArray[id].opacity = '0';
             }
         }
     }

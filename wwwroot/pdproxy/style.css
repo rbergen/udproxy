@@ -530,14 +530,15 @@ is acknowledged in any modified source code
 #status {
   text-align: left;
   margin: 32px 0 0 0;
-  font-family: 'Orbitron', monospace;
+  font-family: 'VFD Display','Orbitron', monospace;
   font-size: 1em;
-  color: #39ff14; /* LED green */
+  color: #ffa600; /* LED green */
   letter-spacing: 0.1em;
-  text-shadow: 0 0 8px #39ff14, 0 0 2px #333; /* glowing effect */
+  text-shadow: 0 0 8px #ffc403, 0 0 2px #333; /* glowing effect */
   background: #222;
   padding: 12px 32px;
   border-radius: 8px;
   width: calc(var(--unitWidth) * 272); /* match .frame width */
   box-sizing: border-box; /* include padding in width */
+  text-transform: uppercase;
 }
