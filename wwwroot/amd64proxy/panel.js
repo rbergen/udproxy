@@ -9,7 +9,6 @@ var panel = {
 };
 
 function initRegister(name) {
-    const value_element = document.getElementById(name + "_value");
     updateRegister(name, startupRegisterValue, defaultRegisterValue); // Initialize with default value
 }
 
