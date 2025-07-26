@@ -7,9 +7,7 @@ let fps = 0;
 let fpsInterval = null;
 
 function formatDuration(ms) {
-    const tenths = Math.floor((ms % 1000) / 100);
     const sec = Math.floor(ms / 1000);
-    if (sec < 60) return `${sec}.${tenths}s`;
     const min = Math.floor(sec / 60);
     const s = sec % 60;
     if (min < 60) return `${min}:${s.toString().padStart(2, '0')}`;
