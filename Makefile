@@ -2,14 +2,14 @@
 
 CXX ?= c++
 
-CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I. -I$(IXWS_DIR)
+CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I. -I$(IXWS_DIR) -I./fmt/include
 LDFLAGS = -L$(IXWS_BUILD_DIR) -lixwebsocket -lpthread -lz
 
 IXWS_DIR = ./IXWebSocket
 IXWS_BUILD_DIR = $(IXWS_DIR)/build
 
 DEP_DIR = dep
-SOURCES = main.cpp pdproxy.cpp proxybase.cpp webserver.cpp
+SOURCES = main.cpp amd64proxy.cpp pdproxy.cpp proxybase.cpp webserver.cpp
 TARGET = udproxy
 LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/libixwebsocket.a
 
