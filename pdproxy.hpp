@@ -1,7 +1,8 @@
 #pragma once
 #include "proxybase.hpp"
 
-class PDProxy : public ProxyBase {
+class PDProxy : public ProxyBase
+{
 public:
     PDProxy(unsigned short port);
     ~PDProxy() override = default;

@@ -1,83 +1,112 @@
 #!/usr/bin/env python3
-# udpsender.py - A simple UDP sender for PDP-11 panel packets
-# This script allows you to set fields of a PDP-11 packet and send it over UDP
+# udpsender.py - A simple UDP sender for PDP-11 and AMD64 panel packets
 
 import socket
 import struct
 import readline  # allows up/down arrow history
 
-# Defaults
-UDP_IP = "127.0.0.1"
-UDP_PORT = 4000
-
-# Initial field values
-packet_fields = {
-    "pp_byte_count": 16,
-    "pp_byte_flags": 1,
-    "ps_address": 0x15555,
-    "ps_data": 0xAAAA,
-    "ps_psw": 0x0200,
-    "ps_mser": 0x0001,
-    "ps_cpu_err": 0x0000,
-    "ps_mmr0": 0x7000,
-    "ps_mmr3": 0x0003,
+# Packet definitions
+PACKET_TYPES = {
+    "pdp11": {
+        "desc": "PDP-11",
+        "udp_port": 4000,
+        "fields": {
+            "pp_byte_count": 16,
+            "pp_byte_flags": 1,
+            "ps_address": 0x15555,
+            "ps_data": 0xAAAA,
+            "ps_psw": 0x0200,
+            "ps_mser": 0x0001,
+            "ps_cpu_err": 0x0000,
+            "ps_mmr0": 0x7000,
+            "ps_mmr3": 0x0003,
+        },
+        "format": "<HI I 6H"
+    },
+    "amd64": {
+        "desc": "NetBSD/AMD64",
+        "udp_port": 4001,
+        "fields": {
+            "pp_byte_count": (26 * 8),  # 2 + 2 + 26*8
+            "pp_byte_flags": 1,
+            "cf_rdi": 0, "cf_rsi": 0, "cf_rdx": 0, "cf_rcx": 0, "cf_r8": 0, "cf_r9": 0,
+            "cf_r10": 0, "cf_r11": 0, "cf_r12": 0, "cf_r13": 0, "cf_r14": 0, "cf_r15": 0,
+            "cf_rbp": 0, "cf_rbx": 0, "cf_rax": 0, "cf_gs": 0, "cf_fs": 0, "cf_es": 0, "cf_ds": 0,
+            "cf_trapno": 0, "cf_err": 0, "cf_rip": 0, "cf_cs": 0, "cf_rflags": 0, "cf_rsp": 0, "cf_ss": 0,
+        },
+        "format": "<HI" + "Q"*26
+    }
 }
 
-def build_packet(fields):
-    """Pack the current field values into a binary packet"""
-    return struct.pack(
-        "<HI I 6H",
-        fields["pp_byte_count"],
-        fields["pp_byte_flags"],
-        fields["ps_address"],
-        fields["ps_data"],
-        fields["ps_psw"],
-        fields["ps_mser"],
-        fields["ps_cpu_err"],
-        fields["ps_mmr0"],
-        fields["ps_mmr3"]
-    )
+UDP_IP = "127.0.0.1"
+
+def build_packet(fields, fmt):
+    try:
+        values = [fields[k] for k in fields]
+        return struct.pack(fmt, *values)
+    except Exception as e:
+        print(f"Error building packet: {e}")
+        return b""
 
 def print_packet(fields):
     print("Current packet field values:")
     for k, v in fields.items():
-        print(f"  {k} = 0x{v:04X}")
+        print(f"  {k} = 0x{v:X}")
 
 def parse_value(val):
-    """Parse a value like 0x1234 or 4660"""
     return int(val, 0)
 
-# Create UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-print("UDP PDP Panel Packet Sender")
-print(f"Target: {UDP_IP}:{UDP_PORT}")
-print("Commands: set <field> <value>, send, show, quit")
+print("UDP Panel Packet Sender")
+print(f"Packet types: " + ", ".join(PACKET_TYPES.keys()))
 
 while True:
-    try:
-        cmd = input("> ").strip()
-    except (EOFError, KeyboardInterrupt):
+    print("\nSelect packet type:")
+    for i, key in enumerate(PACKET_TYPES):
+        print(f"  {i+1}. {PACKET_TYPES[key]['desc']} ({key})")
+    print("  q. Quit")
+    sel = input("> ").strip().lower()
+    if sel in ("q", "quit", "exit"):
         break
-
-    if cmd == "":
-        continue
-    elif cmd in ("q", "quit", "exit"):
-        break
-    elif cmd == "show":
-        print_packet(packet_fields)
-    elif cmd == "send":
-        packet = build_packet(packet_fields)
-        sock.sendto(packet, (UDP_IP, UDP_PORT))
-        print(f"Sent {len(packet)} bytes")
-    elif cmd.startswith("set "):
-        try:
-            _, field, val = cmd.split(maxsplit=2)
-            if field not in packet_fields:
-                print(f"Unknown field: {field}")
-                continue
-            packet_fields[field] = parse_value(val)
-        except Exception as e:
-            print(f"Error parsing command: {e}")
+    if sel.isdigit() and 1 <= int(sel) <= len(PACKET_TYPES):
+        pkt_key = list(PACKET_TYPES.keys())[int(sel)-1]
+    elif sel in PACKET_TYPES:
+        pkt_key = sel
     else:
-        print("Unknown command")
+        print("Unknown selection")
+        continue
+
+    fields = PACKET_TYPES[pkt_key]["fields"].copy()
+    fmt = PACKET_TYPES[pkt_key]["format"]
+    udp_port = PACKET_TYPES[pkt_key]["udp_port"]
+    print(f"\nSelected packet type: {PACKET_TYPES[pkt_key]['desc']} ({pkt_key}), UDP port {udp_port}")
+    print("Commands: set <field> <value>, send, show, quit")
+    while True:
+        try:
+            cmd = input(f"{pkt_key}> ").strip()
+        except (EOFError, KeyboardInterrupt):
+            print()
+            break
+
+        if cmd == "":
+            continue
+        elif cmd in ("q", "quit", "exit"):
+            break
+        elif cmd == "show":
+            print_packet(fields)
+        elif cmd == "send":
+            packet = build_packet(fields, fmt)
+            sock.sendto(packet, (UDP_IP, udp_port))
+            print(f"Sent {len(packet)} bytes to {UDP_IP}:{udp_port}")
+        elif cmd.startswith("set "):
+            try:
+                _, field, val = cmd.split(maxsplit=2)
+                if field not in fields:
+                    print(f"Unknown field: {field}")
+                    continue
+                fields[field] = parse_value(val)
+            except Exception as e:
+                print(f"Error parsing command: {e}")
+        else:
+            print("Unknown command")

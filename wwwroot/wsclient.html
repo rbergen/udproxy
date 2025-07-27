@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WebSocket Client Demo</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>WebSocket Client Demo</h1>
+        <div id="status">Connecting...</div>
+        <div id="log"></div>
+        <script>
+            // Get port from query parameter, default to 4000
+            const params = new URLSearchParams(window.location.search);
+            const port = params.get('port') || '4000';
+            const wsUrl = `ws://${location.hostname}:${port}`;
+            const ws = new WebSocket(wsUrl);
+            const status = document.getElementById('status');
+            const log = document.getElementById('log');
+
+            ws.onopen = () => {
+                status.textContent = `Connected to ${wsUrl}`;
+            };
+            ws.onclose = () => {
+                status.textContent = 'Disconnected';
+            };
+            ws.onerror = (e) => {
+                status.textContent = 'WebSocket error';
+            };
+            ws.onmessage = (event) => {
+                try {
+                    const obj = JSON.parse(event.data);
+                    log.textContent += JSON.stringify(obj, null, 2) + '\n\n';
+                } catch (e) {
+                    log.textContent += event.data + '\n\n';
+                }
+            };
+        </script>
+    </div>
+</body>
+</html>

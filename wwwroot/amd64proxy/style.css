@@ -1,0 +1,90 @@
+body {
+    background-color: black;
+    margin: 0;
+}
+
+.main-panel {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* center horizontally */
+    min-height: 100vh;
+    justify-content: center;
+}
+
+.register-display {
+    font-family: 'LED Dot-Matrix', sans-serif;
+    font-size: 24px;
+    line-height: 1;
+    display: inline-block;
+    /* width will be set by .bit-line */
+}
+
+.text-line {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    width: 100%;
+    margin-bottom: 6px;
+}
+
+.name {
+    color: #FFD700;
+    text-shadow:
+        0 0 1px #FFD700,
+        0 0 2px #FFD700,
+        0 0 4px #FFD700;
+}
+
+.value {
+    color: #00ff08;
+    text-shadow:
+        0 0 1px #00ff08,
+        0 0 2px #00ff08,
+        0 0 4px #00ff08;
+    text-align: right;
+}
+
+.bit-line {
+    display: flex;
+    gap: 2px;
+    margin-top: 5px;
+    width: fit-content;
+}
+
+.bit {
+    width: 6px;
+    height: 6px;
+    background-color: #FF0000;
+    border-radius: 10%;
+    box-shadow:
+        0 0 1px #FF0000,
+        0 0 2px #FF0000;
+}
+
+.register-columns {
+    display: flex;
+    flex-direction: row;
+    gap: 48px;
+    justify-content: center;
+}
+
+.register-column {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#status {
+    margin-top: 32px; /* or any value that looks good */
+    clear: both;      /* ensures it starts on a new line if floats are used above */
+    display: block;
+    text-align: left;
+    font-family: 'LED Dot-Matrix', sans-serif;
+    font-size: 24px;
+    color: #00ff08;
+    text-shadow:
+        0 0 1px #00ff08,
+        0 0 2px #00ff08,
+        0 0 4px #00ff08;
+    padding: 12px 32px;
+}
