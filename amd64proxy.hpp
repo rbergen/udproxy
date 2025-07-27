@@ -1,8 +1,6 @@
 #pragma once
 #include "proxybase.hpp"
 
-
-
 class AMD64Proxy : public ProxyBase
 {
 public:

@@ -4,13 +4,20 @@ const startupRegisterValue = 'FFFFFFFFFFFFFFFF';
 const defaultRegisterValue = '0000000000000000'; // Default value for registers
 
 var panel = {
+    registers: [
+        'rax',
+        'rbx',
+        'rcx',
+        'rdx',
+        'rsi',
+        'rdi',
+        'rbp',
+        'rsp',
+        'rip',
+        'rflags'],
     old_state: null, // previous state of panel
     state: null, // current state of panel, as received from WebSocket
 };
-
-function initRegister(name) {
-    updateRegister(name, startupRegisterValue, defaultRegisterValue); // Initialize with default value
-}
 
 function updateRegister(name, oldValue, newValue) {
     function update32Bits(bitDivs, offset, oldValue, newValue) {
@@ -36,34 +43,23 @@ function updateRegister(name, oldValue, newValue) {
     }
 
     const value_element = document.getElementById(name + "_value");
-    if (value_element) {
-        value_element.textContent = newValue; // Update displayed value
-    }
+    value_element && (value_element.textContent = newValue); // Update displayed value
 }
 
 function updatePanelState(newState) {
     panel.old_state = panel.state; // Save old state
     panel.state = newState; // Set new state
 
-    for (let register of Object.keys(panel.state)) {
+    for (const register of Object.keys(panel.state)) {
         const oldValue = panel.old_state ? (panel.old_state[register] || defaultRegisterValue) : defaultRegisterValue;
         const newValue = panel.state[register];
-        if (newValue !== oldValue) {
+        if (newValue !== oldValue)
             updateRegister(register, oldValue, newValue);
-        }
     }
 }
 
 function initialize() {
-    // Initialize all registers
-    initRegister('rax');
-    initRegister('rbx');
-    initRegister('rcx');
-    initRegister('rdx');
-    initRegister('rsi');
-    initRegister('rdi');
-    initRegister('rbp');
-    initRegister('rsp');
-    initRegister('rip');
-    initRegister('rflags');
+    // Initialize all registers with default values
+    for (const name of panel.registers)
+        updateRegister(name, startupRegisterValue, defaultRegisterValue);
 }
