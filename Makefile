@@ -9,7 +9,7 @@ IXWS_DIR = ./IXWebSocket
 IXWS_BUILD_DIR = $(IXWS_DIR)/build
 
 DEP_DIR = dep
-SOURCES = main.cpp amd64proxy.cpp pdproxy.cpp proxybase.cpp webserver.cpp
+SOURCES = main.cpp amd64proxy.cpp pdproxy.cpp netbsdvaxproxy.cpp proxybase.cpp webserver.cpp
 TARGET = udproxy
 LIBIXWEBSOCKET = $(IXWS_BUILD_DIR)/libixwebsocket.a
 

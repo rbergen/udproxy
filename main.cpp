@@ -1,5 +1,6 @@
 #include "pdproxy.hpp"
 #include "amd64proxy.hpp"
+#include "netbsdvaxproxy.hpp"
 #include "webserver.hpp"
 #include "json.hpp"
 #include <concepts>
@@ -15,6 +16,8 @@
 #define PDPROXY_PORT 4000
 #define AMD64PROXY_NAME "amd64proxy"
 #define AMD64PROXY_PORT 4001
+#define NETBSDVAXPROXY_NAME "netbsdvax"
+#define NETBSDVAXPROXY_PORT 4002
 
 static std::vector<std::unique_ptr<ProxyBase>> proxies;
 static std::unique_ptr<WebServer> webserver;
@@ -45,6 +48,7 @@ int main()
 
     add_proxy<PDProxy>(PDPROXY_NAME, PDPROXY_PORT);
     add_proxy<AMD64Proxy>(AMD64PROXY_NAME, AMD64PROXY_PORT);
+    add_proxy<NetBSDVAXProxy>(NETBSDVAXPROXY_NAME, NETBSDVAXPROXY_PORT);
     // Example: add more proxies with different ports if needed
     // add_proxy("proxy2", 5000);
 
