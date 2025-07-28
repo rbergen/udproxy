@@ -230,7 +230,8 @@ hardclock(dev,sp,r1,ov,nps,r0,pc,ps)
     panel.ps_mmr0    = *(short *)017777572;
     panel.ps_mmr3    = *(short *)017777516;
 	*/
-
+    panel_seq++;
+    wakeup((caddr_t)&panel_seq);
 
 	if (needsoft && BASEPRI(ps)) {	/* if ps is high, just return */
 		(void) _splsoftclock();
