@@ -1,6 +1,6 @@
 [submodule "IXWebSocket"]
-    path = IXWebSocket
+    path = proxy/IXWebSocket
     url = https://github.com/machinezone/IXWebSocket.git
 [submodule "fmt"]
-	path = fmt
+	path = proxy/fmt
 	url = https://github.com/fmtlib/fmt.git
