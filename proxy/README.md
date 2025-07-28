@@ -27,7 +27,7 @@ The built-in webserver runs at port 4080.
 - zlib development headers (`sudo apt-get install zlib1g-dev` on Ubuntu)
 - pthreads (usually included by default)
 
-### Build Steps (pdproxy and IXWebSocket dependency)
+### Build Steps
 
    ```bash
    make
