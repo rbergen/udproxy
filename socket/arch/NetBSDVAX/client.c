@@ -28,6 +28,8 @@ extern int optind, optopt;
 #define SERVER_PORT 4002
 #include "../../common.c"
 
+/* Timing method selection - define USE_USLEEP to use usleep() instead of select() */
+#define USE_USLEEP 1
 
 /* Include panel state definitions */
 #include "panel_state.h"
@@ -100,6 +102,12 @@ int main(int argc, char *argv[])
     printf("UDP socket created. Sending panel data to %s:%d at %d Hz...\n", 
            server_ip, SERVER_PORT, FRAMES_PER_SECOND);
     printf("Packet size: %d bytes\n", (int)sizeof(struct vax_panel_packet));
+    printf("Frame delay: %d microseconds\n", USEC_PER_FRAME);
+#ifdef USE_USLEEP
+    printf("Timing method: usleep() [testing for NetBSD VAX timing fix]\n");
+#else
+    printf("Timing method: select() [default]\n");
+#endif
     printf("Note: UDP is connectionless - errors will be reported during transmission\n");
     
     /* Send frames continuously */
@@ -246,6 +254,11 @@ void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void 
     struct vax_panel_state panel;
     struct vax_panel_packet packet;
     int frame_count = 0;
+    struct timeval start_time, current_time;
+    double elapsed_seconds, actual_fps;
+    
+    /* Get start time for FPS measurement */
+    gettimeofday(&start_time, NULL);
     
     while (1) {
         /* Read panel structure from kernel memory */
@@ -281,6 +294,16 @@ void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void 
         
         frame_count++;
         
+        /* Measure and report actual FPS every 60 frames */
+        if (frame_count % 60 == 0) {
+            gettimeofday(&current_time, NULL);
+            elapsed_seconds = (current_time.tv_sec - start_time.tv_sec) + 
+                             (current_time.tv_usec - start_time.tv_usec) / 1000000.0;
+            actual_fps = frame_count / elapsed_seconds;
+            printf("Frame %d: Actual FPS = %.2f (target: %d)\n", 
+                   frame_count, actual_fps, FRAMES_PER_SECOND);
+        }
+        
         /* Debug: Print first few sends */
         if (frame_count <= 5) {
             printf("DEBUG: Sent packet #%d, size=%d bytes\n", frame_count, (int)sizeof(packet));
@@ -292,6 +315,11 @@ void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void 
         }
         
         /* Wait for next frame time */
+        /* Testing different timing methods to resolve 2x timing issue on NetBSD VAX */
+#ifdef USE_USLEEP
+        usleep(USEC_PER_FRAME);
+#else
         precise_delay(USEC_PER_FRAME);
+#endif
     }
 }
