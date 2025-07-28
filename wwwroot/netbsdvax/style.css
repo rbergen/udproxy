@@ -267,7 +267,7 @@ body {
 .notch {
   height: 0;
   width: 1px;
-  border-top: calc(var(--unitHeight) * 1.9) solid purple;
+  border-top: calc(var(--unitHeight) * 1.9) solid #1e3a8a;
   border-left: calc(var(--unitWidth) * 1.0) solid transparent;
   border-right: calc(var(--unitWidth) * 1.0) solid transparent;
   position: absolute;
@@ -540,19 +540,19 @@ body {
 }
 
 .red {
-  background: linear-gradient(crimson, firebrick);
+  background: linear-gradient(#60a5fa, #3b82f6);
 }
 
 .redBase {
-  background: crimson;
+  background: #60a5fa;
 }
 
 .purple {
-  background: linear-gradient(darkmagenta, purple);
+  background: linear-gradient(#1e3a8a, #1e40af);
 }
 
 .purpleBase {
-  background: darkmagenta;
+  background: #1e3a8a;
 }
 
 .black {
