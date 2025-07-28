@@ -173,6 +173,7 @@ static int find_panel_client_proc(void);
 static void panel_update_tick(void);
 static int sysctl_panel_notification_enabled(SYSCTLFN_PROTO);
 static int sysctl_panel_client_pid(SYSCTLFN_PROTO);
+void panel_notification_init(void);  /* Non-static - called from initclocks */
 
 static void
 clockrnd_get(size_t needed, void *cookie)
@@ -652,7 +653,7 @@ find_panel_client_proc(void)
 	}
 
 	/* Look up the process by PID */
-	panel_client_proc = proc_find(panel_client_pid);
+	panel_client_proc = pfind(panel_client_pid);
 	if (panel_client_proc == NULL) {
 		printf("Panel client PID %d not found\n", panel_client_pid);
 		return -1;
@@ -710,7 +711,7 @@ panel_update_tick(void)
 /*
  * Initialize panel notification system
  */
-static void
+void
 panel_notification_init(void)
 {
 	const struct sysctlnode *node;

@@ -8,7 +8,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/file.h>
-∂#include <sys/event.h>
+#include <sys/event.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -265,7 +265,7 @@ int read_panel_from_kmem(int kmem_fd, void *panel_addr, struct vax_panel_state *
     panel->ps_address = *(uint32_t*)&raw_data[0];
     panel->ps_data = *(uint32_t*)&raw_data[4];
     
-    return 0;    return 0;
+    return 0;
 }
 
 void send_frames_with_notification(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void *panel_addr)
