@@ -15,7 +15,7 @@
 In general terms, it consists of two parts:
 
 - In the [socket subdirectory](./socket/), a number of OS and architecture-specific kernel modules with supporting tools; each set is located in their respective subdirectory of [socket/arch](./socket/arch/). The combination of kernel module and UDP client ("client.c") compose and send UDP packets containing CPU state to servers able to process them.
-- In the [proxy subdirectory](./proxy/), a modular proxy and webserver for converting the UDP packets into WebSocket messages, and having them visualized in virtual, in-browser virtual panels.
+- In the [proxy subdirectory](./proxy/), a modular proxy and webserver for converting the UDP packets into WebSocket messages, and having them visualized in in-browser virtual panels.
 
 Both parts have their own README in the respective directory.
 
