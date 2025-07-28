@@ -8,6 +8,7 @@
 #include <sys/socket.h>
 #include <sys/time.h>
 #include <sys/file.h>
+∂#include <sys/event.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <arpa/inet.h>
@@ -19,6 +20,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <stdint.h>
+#include <signal.h>
 
 /* External getopt declarations for compatibility */
 extern char *optarg;
@@ -30,6 +32,9 @@ extern int optind, optopt;
 
 /* Timing method selection - define USE_USLEEP to use usleep() instead of select() */
 #define USE_USLEEP 1
+
+/* Panel notification mechanism */
+#define PANEL_UPDATE_IDENT 0x12345  /* Unique identifier for our panel event */
 
 /* Include panel state definitions */
 #include "panel_state.h"
@@ -43,6 +48,10 @@ extern int optind, optopt;
 int open_kmem_and_find_panel(void **panel_addr);
 int read_panel_from_kmem(int kmem_fd, void *panel_addr, struct vax_panel_state *panel);
 void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void *panel_addr);
+void send_frames_with_notification(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void *panel_addr);
+int setup_panel_notification(void);
+void register_with_kernel(void);
+void cleanup_panel_notification(void);
 
 int main(int argc, char *argv[])
 {
@@ -66,13 +75,22 @@ int main(int argc, char *argv[])
         }
     }
     
-    printf("NetBSD VAX Panel Client\n");
+    printf("NetBSD VAX Panel Client with Kernel Notification Support\n");
     printf("Connecting to server at %s:%d via UDP\n", server_ip, SERVER_PORT);
+    
+    /* Set up kernel notification mechanism first */
+    if (setup_panel_notification() < 0) {
+        printf("Warning: Kernel notification setup failed, falling back to polling mode\n");
+    }
+    
+    /* Register our process with the kernel for panel notifications */
+    register_with_kernel();
     
     /* Open /dev/kmem and find panel symbol */
     kmem_fd = open_kmem_and_find_panel(&panel_addr);
     if (kmem_fd < 0) {
         fprintf(stderr, "Failed to open /dev/kmem or find panel symbol\n");
+        cleanup_panel_notification();
         exit(1);
     }
     
@@ -110,11 +128,12 @@ int main(int argc, char *argv[])
 #endif
     printf("Note: UDP is connectionless - errors will be reported during transmission\n");
     
-    /* Send frames continuously */
-    send_frames(sockfd, &server_addr, kmem_fd, panel_addr);
+    /* Send frames continuously with kernel notification */
+    send_frames_with_notification(sockfd, &server_addr, kmem_fd, panel_addr);
     
     close(sockfd);
     close(kmem_fd);
+    cleanup_panel_notification();
     return 0;
 }
 
@@ -249,6 +268,81 @@ int read_panel_from_kmem(int kmem_fd, void *panel_addr, struct vax_panel_state *
     return 0;    return 0;
 }
 
+void send_frames_with_notification(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void *panel_addr)
+{
+    struct vax_panel_state panel;
+    struct vax_panel_packet packet;
+    int frame_count = 0;
+    struct timeval start_time, current_time;
+    double elapsed_seconds, actual_fps;
+    
+    /* Get start time for FPS measurement */
+    gettimeofday(&start_time, NULL);
+    
+    printf("Starting panel monitoring with kernel notifications...\n");
+    
+    while (1) {
+        /* Wait for next panel update notification from kernel */
+        if (wait_for_panel_notification() <= 0) {
+            /* Kernel notification failed, fall back to timed polling */
+            usleep(USEC_PER_FRAME);
+        }
+        
+        /* Read panel structure from kernel memory */
+        if (read_panel_from_kmem(kmem_fd, panel_addr, &panel) < 0) {
+            fprintf(stderr, "Failed to read panel data from kernel\n");
+            break;
+        }
+        
+        /* Populate packet structure */
+        packet.header.pp_byte_count = sizeof(struct vax_panel_state);
+        packet.header.pp_byte_flags = PANEL_VAX;  /* Set panel type flag */
+        packet.panel_state = panel;
+        
+        /* Send panel packet via UDP with immediate transmission */
+        if (sendto(sockfd, &packet, sizeof(packet), MSG_DONTWAIT,
+                   (struct sockaddr *)server_addr, sizeof(*server_addr)) < 0) {
+            fprintf(stderr, "sendto failed after %d packets: ", frame_count);
+            perror("");
+            if (errno == ENETUNREACH) {
+                fprintf(stderr, "Network unreachable - check server IP address\n");
+            } else if (errno == EHOSTUNREACH) {
+                fprintf(stderr, "Host unreachable - server may be down\n");
+            } else if (errno == ECONNREFUSED) {
+                fprintf(stderr, "Connection refused - server not listening on port %d\n", SERVER_PORT);
+            } else if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                /* Non-blocking send would block, continue anyway */
+                fprintf(stderr, "Warning: UDP send would block (frame %d)\n", frame_count);
+            }
+            else {
+                break;
+            }
+        }
+        
+        frame_count++;
+        
+        /* Measure and report actual FPS every 60 frames */
+        if (frame_count % 60 == 0) {
+            gettimeofday(&current_time, NULL);
+            elapsed_seconds = (current_time.tv_sec - start_time.tv_sec) + 
+                             (current_time.tv_usec - start_time.tv_usec) / 1000000.0;
+            actual_fps = frame_count / elapsed_seconds;
+            printf("Frame %d: Actual FPS = %.2f (target: %d) [kernel-driven]\n", 
+                   frame_count, actual_fps, FRAMES_PER_SECOND);
+        }
+        
+        /* Debug: Print first few sends */
+        if (frame_count <= 5) {
+            printf("DEBUG: Sent packet #%d, size=%d bytes [via kernel notification]\n", frame_count, (int)sizeof(packet));
+            if (frame_count == 1) {
+                printf("DEBUG: Panel contents - ps_address=0x%lx, ps_data=0x%x\n", 
+                       (unsigned long)panel.ps_address, (unsigned short)panel.ps_data);
+                printf("First packet sent successfully via kernel notification - server appears reachable\n");
+            }
+        }
+    }
+}
+
 void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void *panel_addr)
 {
     struct vax_panel_state panel;
@@ -322,4 +416,106 @@ void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void 
         precise_delay(USEC_PER_FRAME);
 #endif
     }
+}
+
+/* Kernel notification system implementation */
+static int kq = -1;
+static int notification_available = 0;
+
+int setup_panel_notification(void)
+{
+    /* Create kqueue for event handling */
+    kq = kqueue();
+    if (kq == -1) {
+        perror("kqueue");
+        return -1;
+    }
+    
+    /* Set up EVFILT_USER filter for panel notifications */
+    struct kevent kev[2];
+    EV_SET(&kev[0], PANEL_UPDATE_IDENT, EVFILT_USER, EV_ADD | EV_CLEAR, 0, 0, NULL);
+    
+    /* Also set up EVFILT_SIGNAL for SIGUSR1 as fallback */
+    signal(SIGUSR1, SIG_IGN);  /* We'll handle it via kqueue */
+    EV_SET(&kev[1], SIGUSR1, EVFILT_SIGNAL, EV_ADD, 0, 0, NULL);
+    
+    if (kevent(kq, kev, 2, NULL, 0, NULL) == -1) {
+        perror("kevent setup");
+        close(kq);
+        kq = -1;
+        return -1;
+    }
+    
+    notification_available = 1;
+    printf("Kernel notification system initialized with kqueue and signal fallback\n");
+    return 0;
+}
+
+void register_with_kernel(void)
+{
+    /* Register our PID with the kernel so it knows to send us notifications */
+    pid_t our_pid = getpid();
+    char sysctl_cmd[256];
+    
+    printf("Panel client PID %d registering for kernel notifications\n", our_pid);
+    
+    /* Use sysctl to register our PID with the kernel */
+    snprintf(sysctl_cmd, sizeof(sysctl_cmd), "sysctl -w hw.panel.client_pid=%d", our_pid);
+    int result = system(sysctl_cmd);
+    if (result == 0) {
+        printf("Successfully registered with kernel notification system\n");
+    } else {
+        printf("Warning: Could not register with kernel (sysctl failed)\n");
+        printf("Panel notifications may not work - falling back to polling\n");
+    }
+    
+    /* Also enable panel notifications */
+    result = system("sysctl -w hw.panel.enabled=1");
+    if (result != 0) {
+        printf("Warning: Could not enable panel notifications\n");
+    }
+}
+
+int wait_for_panel_notification(void)
+{
+    if (!notification_available || kq == -1) {
+        return 0;  /* Fall back to polling */
+    }
+    
+    struct kevent kev;
+    struct timespec timeout = { 0, USEC_PER_FRAME * 1000 };  /* Convert to nanoseconds */
+    
+    int n = kevent(kq, NULL, 0, &kev, 1, &timeout);
+    if (n == -1) {
+        if (errno != EINTR) {
+            perror("kevent wait");
+            notification_available = 0;
+        }
+        return 0;
+    }
+    
+    if (n == 0) {
+        /* Timeout occurred, fall back to polling rate */
+        return 0;
+    }
+    
+    if (kev.filter == EVFILT_USER && kev.ident == PANEL_UPDATE_IDENT) {
+        /* Received panel update notification from kernel */
+        return 1;
+    } else if (kev.filter == EVFILT_SIGNAL && kev.ident == SIGUSR1) {
+        /* Received SIGUSR1 signal from kernel (fallback mechanism) */
+        return 1;
+    }
+    
+    return 0;
+}
+
+void cleanup_panel_notification(void)
+{
+    if (kq != -1) {
+        close(kq);
+        kq = -1;
+    }
+    notification_available = 0;
+    printf("Kernel notification system cleaned up\n");
 }

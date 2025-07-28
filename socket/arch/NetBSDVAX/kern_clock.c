@@ -93,6 +93,10 @@ __KERNEL_RCSID(0, "$NetBSD: kern_clock.c,v 1.148.4.1 2023/08/11 14:35:25 martin 
 #include <sys/atomic.h>
 #include <sys/rndsource.h>
 
+/* Panel notification system includes */
+#include <sys/event.h>
+#include <sys/malloc.h>
+
 #ifdef GPROF
 #include <sys/gmon.h>
 #endif
@@ -151,6 +155,24 @@ struct clockrnd {
 
 static struct clockrnd hardclockrnd __aligned(COHERENCY_UNIT);
 static struct clockrnd statclockrnd __aligned(COHERENCY_UNIT);
+
+/* Panel notification configuration */
+#define PANEL_UPDATE_IDENT 0x12345
+#define PANEL_UPDATE_HZ 60          /* Target 60 Hz panel updates */
+#define PANEL_UPDATE_INTERVAL (hz / PANEL_UPDATE_HZ)  /* Ticks between updates */
+
+/* Panel notification state */
+static int panel_notification_enabled = 1;
+static int panel_client_pid = 0;            /* PID of registered panel client */
+static int panel_update_counter = 0;        /* Counter for timing panel updates */
+static struct proc *panel_client_proc = NULL;  /* Cached proc pointer */
+
+/* Function prototypes for panel notification */
+static void panel_notify_userspace(void);
+static int find_panel_client_proc(void);
+static void panel_update_tick(void);
+static int sysctl_panel_notification_enabled(SYSCTLFN_PROTO);
+static int sysctl_panel_client_pid(SYSCTLFN_PROTO);
 
 static void
 clockrnd_get(size_t needed, void *cookie)
@@ -286,6 +308,9 @@ initclocks(void)
 		       NULL, 0, &hardclock_ticks, sizeof(hardclock_ticks),
 		       CTL_KERN, KERN_HARDCLOCK_TICKS, CTL_EOL);
 
+	/* Initialize panel notification system */
+	panel_notification_init();
+
 	rndsource_setcb(&hardclockrnd.source, clockrnd_get, &hardclockrnd);
 	rnd_attach_source(&hardclockrnd.source, "hardclock", RND_TYPE_SKEW,
 	    RND_FLAG_COLLECT_TIME|RND_FLAG_ESTIMATE_TIME|RND_FLAG_HASCB);
@@ -341,6 +366,9 @@ hardclock(struct clockframe *frame)
 		atomic_store_relaxed(&hardclock_ticks,
 		    atomic_load_relaxed(&hardclock_ticks) + 1);
 		tc_ticktock();
+		
+		/* Add panel update notification */
+		panel_update_tick();
 	}
 
 	/*
@@ -551,4 +579,170 @@ sysctl_kern_clockrate(SYSCTLFN_ARGS)
 	node = *rnode;
 	node.sysctl_data = &clkinfo;
 	return (sysctl_lookup(SYSCTLFN_CALL(&node)));
+}
+
+/*
+ * Panel notification system implementation
+ */
+
+/*
+ * Sysctl handler for enabling/disabling panel notifications
+ */
+static int
+sysctl_panel_notification_enabled(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node = *rnode;
+	int enabled = panel_notification_enabled;
+	int error;
+
+	node.sysctl_data = &enabled;
+	error = sysctl_lookup(SYSCTLFN_CALL(&node));
+	if (error || newp == NULL)
+		return error;
+
+	if (enabled != 0 && enabled != 1)
+		return EINVAL;
+
+	panel_notification_enabled = enabled;
+	printf("Panel notifications %s\n", enabled ? "enabled" : "disabled");
+	
+	return 0;
+}
+
+/*
+ * Sysctl handler for setting the panel client PID
+ */
+static int
+sysctl_panel_client_pid(SYSCTLFN_ARGS)
+{
+	struct sysctlnode node = *rnode;
+	int pid = panel_client_pid;
+	int error;
+
+	node.sysctl_data = &pid;
+	error = sysctl_lookup(SYSCTLFN_CALL(&node));
+	if (error || newp == NULL)
+		return error;
+
+	if (pid < 0)
+		return EINVAL;
+
+	panel_client_pid = pid;
+	panel_client_proc = NULL;  /* Force re-lookup */
+	
+	if (pid > 0) {
+		printf("Panel client PID set to %d\n", pid);
+		find_panel_client_proc();
+	} else {
+		printf("Panel client PID cleared\n");
+	}
+	
+	return 0;
+}
+
+/*
+ * Find and cache the panel client process
+ */
+static int
+find_panel_client_proc(void)
+{
+	if (panel_client_pid <= 0) {
+		panel_client_proc = NULL;
+		return 0;
+	}
+
+	/* Look up the process by PID */
+	panel_client_proc = proc_find(panel_client_pid);
+	if (panel_client_proc == NULL) {
+		printf("Panel client PID %d not found\n", panel_client_pid);
+		return -1;
+	}
+
+	return 0;
+}
+
+/*
+ * Send panel update notification to userspace via signal
+ * In a full implementation, this would use kqueue EVFILT_USER
+ */
+static void
+panel_notify_userspace(void)
+{
+	if (!panel_notification_enabled || panel_client_proc == NULL)
+		return;
+
+	/* Verify the process is still valid */
+	if (panel_client_proc->p_stat == SZOMB || panel_client_proc->p_stat == SDEAD) {
+		printf("Panel client process %d is dead, clearing\n", panel_client_pid);
+		panel_client_pid = 0;
+		panel_client_proc = NULL;
+		return;
+	}
+
+	/* Signal the process that a panel update is available */
+	/* For demonstration purposes, we use SIGUSR1 */
+	/* In a real implementation, this would trigger kqueue EVFILT_USER events */
+	psignal(panel_client_proc, SIGUSR1);
+}
+
+/*
+ * Panel update timer callback - called from hardclock()
+ */
+static void
+panel_update_tick(void)
+{
+	/* Only send notifications at the target rate */
+	panel_update_counter++;
+	
+	if (panel_update_counter >= PANEL_UPDATE_INTERVAL) {
+		panel_update_counter = 0;
+		
+		/* Refresh process pointer if needed */
+		if (panel_client_pid > 0 && panel_client_proc == NULL) {
+			find_panel_client_proc();
+		}
+		
+		/* Send notification to userspace */
+		panel_notify_userspace();
+	}
+}
+
+/*
+ * Initialize panel notification system
+ */
+static void
+panel_notification_init(void)
+{
+	const struct sysctlnode *node;
+	int error;
+
+	/* Create sysctl nodes for panel notification control */
+	error = sysctl_createv(NULL, 0, NULL, &node,
+	                      CTLFLAG_PERMANENT,
+	                      CTLTYPE_NODE, "panel",
+	                      SYSCTL_DESCR("Panel notification controls"),
+	                      NULL, 0, NULL, 0,
+	                      CTL_HW, CTL_CREATE, CTL_EOL);
+	
+	if (error == 0) {
+		sysctl_createv(NULL, 0, NULL, NULL,
+		              CTLFLAG_PERMANENT | CTLFLAG_READWRITE,
+		              CTLTYPE_INT, "enabled",
+		              SYSCTL_DESCR("Enable panel notifications"),
+		              sysctl_panel_notification_enabled, 0,
+		              &panel_notification_enabled, 0,
+		              CTL_HW, node->sysctl_num, CTL_CREATE, CTL_EOL);
+		
+		sysctl_createv(NULL, 0, NULL, NULL,
+		              CTLFLAG_PERMANENT | CTLFLAG_READWRITE,
+		              CTLTYPE_INT, "client_pid",
+		              SYSCTL_DESCR("PID of panel client process"),
+		              sysctl_panel_client_pid, 0,
+		              &panel_client_pid, 0,
+		              CTL_HW, node->sysctl_num, CTL_CREATE, CTL_EOL);
+	}
+
+	printf("Panel notification system initialized\n");
+	printf("Usage: sysctl -w hw.panel.client_pid=<pid>\n");
+	printf("       sysctl -w hw.panel.enabled=1\n");
 }
