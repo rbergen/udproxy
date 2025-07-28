@@ -18,6 +18,9 @@
 
 /* Include common packet header and panel type definitions */
 #include "panel_packet.h"
+
+#define SERVER_PORT 4000
+
 #include "common.c"
 
 /* Include platform-specific panel definitions */
@@ -26,8 +29,6 @@
 #include "arch/NetBSDVAX/panel_state.h"
 #include "arch/macOS/panel_state.h"
 #include "arch/LinuxX64/panel_state.h"
-
-#define SERVER_PORT 4000
 
 /* Global variables for signal handling */
 static int server_sockfd = -1;
@@ -189,17 +190,14 @@ void display_linuxx64_panel(struct linuxx64_panel_state *panel)
 /* Display NetBSD VAX panel data */
 void display_vax_panel(struct vax_panel_state *panel)
 {
-    char addr_bin[33], data_bin[17], psw_bin[17], mmr0_bin[17], mmr3_bin[17];
+    char addr_bin[33], data_bin[17];
     
     /* Format each field as binary */
     format_binary(panel->ps_address, 32, addr_bin);  /* 32-bit address */
-    format_binary(panel->ps_data, 16, data_bin);
-    format_binary(panel->ps_psw, 16, psw_bin);
-    format_binary(panel->ps_mmr0, 16, mmr0_bin);
-    format_binary(panel->ps_mmr3, 16, mmr3_bin);
+    format_binary(panel->ps_data, 16, data_bin);     /* 16-bit data (stored in 32-bit field) */
     
-    printf("VAX: ADDR: %s, DATA: %s, PSW: %s, MMR0: %s, MMR3: %s\n",
-           addr_bin, data_bin, psw_bin, mmr0_bin, mmr3_bin);
+    printf("VAX: ADDR: %s, DATA: %s\n",
+           addr_bin, data_bin);
 }
 
 /* Display macOS panel data */
