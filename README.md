@@ -24,7 +24,8 @@ Both parts have their own README in the respective directory.
 Clone the repository *and its dependencies*:
 
 ```bash
-git clone --recurse-submodules https://github.com/PlummersSoftwareLLC/vpanel.```
+git clone --recurse-submodules https://github.com/PlummersSoftwareLLC/vpanel.git
+```
 
 This will fetch the main source and the embedded `IXWebSocket` and `fmt` libraries for the proxy.
 
