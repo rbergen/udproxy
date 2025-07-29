@@ -2,11 +2,7 @@
 
 UNAME_S := $(shell uname -s)
 
-ifeq ($(UNAME_S), Darwin)
-	CXX = g++
-else
-	CXX ?= c++
-endif
+CXX ?= c++
 
 CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I.
 LDFLAGS = -lpthread -lz
