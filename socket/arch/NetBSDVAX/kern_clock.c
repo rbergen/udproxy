@@ -158,18 +158,13 @@ static struct clockrnd statclockrnd __aligned(COHERENCY_UNIT);
 
 /* Panel notification configuration */
 #define PANEL_UPDATE_IDENT 0x12345
-#define PANEL_UPDATE_HZ 60          /* Target 60 Hz panel updates */
-#define PANEL_UPDATE_INTERVAL (hz / PANEL_UPDATE_HZ)  /* Ticks between updates */
 
 /* Panel notification state */
 static int panel_notification_enabled = 1;
 static int panel_client_pid = 0;            /* PID of registered panel client */
-static int panel_update_counter = 0;        /* Counter for timing panel updates */
-static struct proc *panel_client_proc = NULL;  /* Cached proc pointer */
 
 /* Function prototypes for panel notification */
 static void panel_notify_userspace(void);
-static int find_panel_client_proc(void);
 static void panel_update_tick(void);
 static int sysctl_panel_notification_enabled(SYSCTLFN_PROTO);
 static int sysctl_panel_client_pid(SYSCTLFN_PROTO);
@@ -629,11 +624,9 @@ sysctl_panel_client_pid(SYSCTLFN_ARGS)
 		return EINVAL;
 
 	panel_client_pid = pid;
-	panel_client_proc = NULL;  /* Force re-lookup */
 	
 	if (pid > 0) {
 		printf("Panel client PID set to %d\n", pid);
-		find_panel_client_proc();
 	} else {
 		printf("Panel client PID cleared\n");
 	}
@@ -642,70 +635,45 @@ sysctl_panel_client_pid(SYSCTLFN_ARGS)
 }
 
 /*
- * Validate the panel client PID
- */
-static int
-find_panel_client_proc(void)
-{
-	if (panel_client_pid <= 0) {
-		panel_client_proc = NULL;
-		return 0;
-	}
-
-	/* For simplicity, just mark that we have a PID */
-	/* The actual process validation would happen in the notification function */
-	panel_client_proc = (struct proc *)1;  /* Non-NULL marker indicating PID is set */
-	printf("Panel client PID %d registered for notifications\n", panel_client_pid);
-	return 0;
-}
-
-/*
  * Send panel update notification to userspace via signal
- * In a full implementation, this would use kqueue EVFILT_USER
  */
 static void
 panel_notify_userspace(void)
 {
-	/* Simplified notification - just count notifications for now */
-	/* The real implementation would need proper process signaling */
-	static int notification_count = 0;
+	struct proc *p;
 	
 	if (!panel_notification_enabled || panel_client_pid <= 0)
 		return;
 
-	notification_count++;
-	
-	/* For testing purposes, print every 60th notification (once per second at 60Hz) */
-	if (notification_count % 60 == 0) {
-		printf("Panel notification #%d sent to PID %d\n", 
-		       notification_count, panel_client_pid);
+	/* Find the process each time to ensure it's still valid */
+	/* Simple scan through process list */
+	LIST_FOREACH(p, &allproc, p_list) {
+		if (p->p_pid == panel_client_pid) {
+			/* Verify the process is still valid */
+			if (p->p_stat == SZOMB || p->p_stat == SDEAD) {
+				panel_client_pid = 0;
+				return;
+			}
+			
+			/* Send SIGUSR1 signal to the process */
+			psignal(p, SIGUSR1);
+			return;
+		}
 	}
 	
-	/* TODO: Implement actual signal delivery to userspace process */
-	/* This would require proper process lookup and psignal() call */
-	/* For now, the userspace client will fall back to polling */
+	/* Process not found */
+	panel_client_pid = 0;
 }
 
 /*
  * Panel update timer callback - called from hardclock()
+ * Sends notification on every primary CPU interrupt
  */
 static void
 panel_update_tick(void)
 {
-	/* Only send notifications at the target rate */
-	panel_update_counter++;
-	
-	if (panel_update_counter >= PANEL_UPDATE_INTERVAL) {
-		panel_update_counter = 0;
-		
-		/* Validate that we have a registered client */
-		if (panel_client_pid > 0 && panel_client_proc == NULL) {
-			find_panel_client_proc();
-		}
-		
-		/* Send notification to userspace */
-		panel_notify_userspace();
-	}
+	/* Send notification to userspace on every interrupt */
+	panel_notify_userspace();
 }
 
 /*

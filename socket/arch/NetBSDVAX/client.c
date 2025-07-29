@@ -279,14 +279,18 @@ void send_frames_with_notification(int sockfd, struct sockaddr_in *server_addr, 
     /* Get start time for FPS measurement */
     gettimeofday(&start_time, NULL);
     
-    printf("Starting panel monitoring with kernel notifications...\n");
+    printf("Starting PURE EVENT-DRIVEN panel monitoring (no polling)...\n");
+    printf("Waiting for kernel signals at system interrupt rate (typically 100 Hz on NetBSD VAX)...\n");
     
     while (1) {
-        /* Wait for next panel update notification from kernel */
+        /* PURE EVENT-DRIVEN: Only wait for kernel notification, no fallback */
         if (wait_for_panel_notification() <= 0) {
-            /* Kernel notification failed, fall back to timed polling */
-            usleep(USEC_PER_FRAME);
+            /* If we get here, something is wrong with the event system */
+            /* Just continue waiting - NO POLLING */
+            continue;
         }
+        
+        /* Kernel signaled us - send frame immediately */
         
         /* Read panel structure from kernel memory */
         if (read_panel_from_kmem(kmem_fd, panel_addr, &panel) < 0) {
@@ -327,8 +331,8 @@ void send_frames_with_notification(int sockfd, struct sockaddr_in *server_addr, 
             elapsed_seconds = (current_time.tv_sec - start_time.tv_sec) + 
                              (current_time.tv_usec - start_time.tv_usec) / 1000000.0;
             actual_fps = frame_count / elapsed_seconds;
-            printf("Frame %d: Actual FPS = %.2f (target: %d) [kernel-driven]\n", 
-                   frame_count, actual_fps, FRAMES_PER_SECOND);
+            printf("Frame %d: Actual FPS = %.2f (target: system interrupt rate) [kernel-driven]\n", 
+                   frame_count, actual_fps);
         }
         
         /* Debug: Print first few sends */
@@ -479,35 +483,39 @@ void register_with_kernel(void)
 int wait_for_panel_notification(void)
 {
     if (!notification_available || kq == -1) {
-        return 0;  /* Fall back to polling */
+        printf("ERROR: Notification system not available, cannot proceed\n");
+        exit(1);  /* Pure event-driven mode requires working notifications */
     }
     
     struct kevent kev;
-    struct timespec timeout = { 0, USEC_PER_FRAME * 1000 };  /* Convert to nanoseconds */
+    /* NO TIMEOUT - block indefinitely until kernel sends signal */
+    int n = kevent(kq, NULL, 0, &kev, 1, NULL);
     
-    int n = kevent(kq, NULL, 0, &kev, 1, &timeout);
     if (n == -1) {
-        if (errno != EINTR) {
-            perror("kevent wait");
-            notification_available = 0;
+        if (errno == EINTR) {
+            /* Interrupted by signal - this might be our SIGUSR1 */
+            return 1;
         }
-        return 0;
+        perror("kevent wait failed");
+        exit(1);  /* Pure event-driven mode cannot tolerate kevent failures */
     }
     
     if (n == 0) {
-        /* Timeout occurred, fall back to polling rate */
+        /* This should never happen with NULL timeout */
+        printf("ERROR: kevent returned 0 with NULL timeout\n");
         return 0;
     }
     
-    if (kev.filter == EVFILT_USER && kev.ident == PANEL_UPDATE_IDENT) {
-        /* Received panel update notification from kernel */
+    if (kev.filter == EVFILT_SIGNAL && kev.ident == SIGUSR1) {
+        /* Received SIGUSR1 signal from kernel - this is what we want */
         return 1;
-    } else if (kev.filter == EVFILT_SIGNAL && kev.ident == SIGUSR1) {
-        /* Received SIGUSR1 signal from kernel (fallback mechanism) */
+    } else if (kev.filter == EVFILT_USER && kev.ident == PANEL_UPDATE_IDENT) {
+        /* Received EVFILT_USER notification from kernel */
         return 1;
     }
     
-    return 0;
+    printf("DEBUG: Received unexpected event: filter=%d, ident=%lu\n", kev.filter, kev.ident);
+    return 0;  /* Wait for next event */
 }
 
 void cleanup_panel_notification(void)
