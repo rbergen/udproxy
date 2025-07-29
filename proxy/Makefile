@@ -2,7 +2,7 @@
 
 CXX ?= c++
 
-CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I. -I$(IXWS_DIR) -I./fmt/include
+CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I.
 LDFLAGS = -lpthread -lz
 
 DEP_DIR = dep
@@ -11,6 +11,13 @@ TARGET = udproxy
 
 OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
+
+# Add brew paths for macOS
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S), Darwin)
+    CXXFLAGS += -I$(shell brew --prefix)/include/
+    LDFLAGS += -L$(shell brew --prefix)/lib/
+endif
 
 all: $(TARGET)
 
