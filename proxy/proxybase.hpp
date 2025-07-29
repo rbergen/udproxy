@@ -5,7 +5,6 @@
 #include <thread>
 #include <memory>
 #include <vector>
-#include <ixwebsocket/IXWebSocketServer.h>
 #include "logging.hpp"
 #include "types.hpp"
 #define CROW_ENABLE_COMPRESSION 1
