@@ -22,7 +22,7 @@ The built-in webserver runs at port 4080.
 
 ### Prerequisites
 
-- C++20 compiler (e.g., `g++`, `clang++`)
+- C++20 compiler (e.g., `g++`, `clang++`) with support for std::jthread
 - asio development headers (`sudo apt-get install libasio-dev` on Ubuntu)
 - zlib development headers (`sudo apt-get install zlib1g-dev` on Ubuntu)
 - pthreads (usually included by default)
