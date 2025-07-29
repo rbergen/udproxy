@@ -33,10 +33,9 @@ std::string NetBSDVAXProxy::udp_packet_to_json(std::span<const char> data)
     if (!get_panel_state(data, panel_state))
         return "";
 
-    nlohmann::json json;
-    json["address"]       = panel_state.ps_address; // Full 32-bit address
-    json["data"]          = panel_state.ps_data;    // Full 32-bit data
-
+    crow::json::wvalue json;
+    json["address"] = panel_state.ps_address; // Full 32-bit address
+    json["data"]    = panel_state.ps_data;    // Full 32-bit data
 
     return json.dump();
 }

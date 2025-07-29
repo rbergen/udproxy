@@ -42,7 +42,7 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
     bool addr22 = (panel_state.ps_mmr3 & (1 << 4)) != 0; // MMR3 bit 4: 22-bit addressing
     bool addr18 = (panel_state.ps_mmr0 & (1 << 0)) && !addr22; // MMR0 bit 0: 18-bit addressing if not in 22-bit mode
 
-    nlohmann::json json;
+    crow::json::wvalue json;
     json["address"]       = panel_state.ps_address & 0x3fffff; // Mask to 22 bits
     json["data"]          = panel_state.ps_data;
 

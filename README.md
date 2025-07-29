@@ -19,20 +19,10 @@ In general terms, it consists of two parts:
 
 Both parts have their own README in the respective directory.
 
-## Getting the Source Code (Read This!)
+## Getting the Source Code
 
-Clone the repository *and its dependencies*:
-
-```bash
-git clone --recurse-submodules https://github.com/PlummersSoftwareLLC/vpanel.git
-```
-
-This will fetch the main source and the embedded `IXWebSocket` and `fmt` libraries for the proxy.
-
-For pulling in the dependencies, the `--recurse-submodules` flag is critical. If you forgot to add that, you can clone and initialize the submodules after cloning. For this, issue the following command while in the cloned vpanel directory:
+Clone the repository
 
 ```bash
-git submodule update --init --recursive
+git clone https://github.com/PlummersSoftwareLLC/vpanel.git
 ```
-
-`fmt` is used because `std::format` is not available in GCC 11, which is the version in one of the contributor's Linux distribution.

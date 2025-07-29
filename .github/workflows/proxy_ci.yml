@@ -15,5 +15,15 @@ jobs:
         with:
           submodules: 'recursive'  # Fetch submodules like IXWebSocket
 
+      - name: Set up dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasio-dev zlib1g-dev
+
+      - name: Set up dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install asio
+
       - name: Build the proxy
         run: make -C proxy

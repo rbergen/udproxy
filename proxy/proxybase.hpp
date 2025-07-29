@@ -5,11 +5,11 @@
 #include <thread>
 #include <memory>
 #include <vector>
-#include "json.hpp"
-#include "httplib.h"
 #include <ixwebsocket/IXWebSocketServer.h>
 #include "logging.hpp"
 #include "types.hpp"
+#define CROW_ENABLE_COMPRESSION 1
+#include "crow_all.h"
 
 class ProxyBase : public Loggable {
 public:
@@ -19,7 +19,12 @@ public:
     void stop();
     virtual std::string udp_packet_to_json(std::span<const char> data) = 0;
     unsigned short get_proxy_port() const { return port; }
-    void udp_loop();
+
+    // Non-copyable, non-movable
+    ProxyBase(const ProxyBase&) = delete;
+    ProxyBase& operator=(const ProxyBase&) = delete;
+    ProxyBase(ProxyBase&&) = delete;
+    ProxyBase& operator=(ProxyBase&&) = delete;
 
 protected:
     template<typename T>
@@ -58,9 +63,28 @@ protected:
         return true;
     }
 
-    unsigned short port;
-    std::atomic<bool> stop_flag;
-    std::thread udp_thread;
-    ix::WebSocketServer server;
+    template<typename T, size_t N = (sizeof(T) * 2)>
+    std::string to_hex(T value)
+    {
+        static const char* digits = "0123456789ABCDEF";
+        std::string result(N, '0');
 
+        for (size_t i = N - 1; i >= 0 && value; --i)
+        {
+            result[i] = digits[value & 0xF];
+            value >>= 4;
+        }
+
+        return result;
+    }
+
+    unsigned short port;
+private:
+    void udp_loop(std::stop_token stop_token);
+
+    std::jthread udp_thread;
+    crow::SimpleApp ws_server;
+    std::future<void> server_future;
+    std::set<crow::websocket::connection*> ws_clients;
+    std::mutex ws_clients_mutex;
 };

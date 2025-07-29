@@ -1,7 +1,5 @@
 #include "amd64proxy.hpp"
 #include <cstring>
-#define FMT_HEADER_ONLY
-#include <fmt/format.h>
 
 // Packet structure definitions - use tight packing to match network protocol
 #pragma pack(push, 1)
@@ -67,12 +65,8 @@ std::string AMD64Proxy::udp_packet_to_json(std::span<const char> data)
         return "";
 
     auto& ps_frame = panel_state.ps_frame;
-    auto to_hex = [](uint64_t value)
-    {
-        return fmt::format("{:016X}", value);
-    };
 
-    nlohmann::json json;
+    crow::json::wvalue json;
     json["rax"]    = to_hex(ps_frame.cf_rax);
     json["rbx"]    = to_hex(ps_frame.cf_rbx);
     json["rcx"]    = to_hex(ps_frame.cf_rcx);

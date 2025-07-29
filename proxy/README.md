@@ -23,7 +23,7 @@ The built-in webserver runs at port 4080.
 ### Prerequisites
 
 - C++20 compiler (e.g., `g++`, `clang++`)
-- CMake (for building IXWebSocket)
+- asio development headers (`sudo apt-get install libasio-dev` on Ubuntu)
 - zlib development headers (`sudo apt-get install zlib1g-dev` on Ubuntu)
 - pthreads (usually included by default)
 
@@ -33,7 +33,7 @@ The built-in webserver runs at port 4080.
    make
    ```
 
-   This will first build the IXWebSocket library and then the `udproxy` executable in the project root.
+   This will build the `udproxy` executable.
 
 ## Running
 
@@ -61,12 +61,9 @@ The following takes the `proxy/` project directory as its root.
 - `amd64proxy.hpp/cpp` — AMD64 proxy implementation
 - `webserver.hpp/cpp` — Lightweight HTTP server
 - `wwwroot/` — Static web content (dashboard, client pages)
-- `IXWebSocket/` — WebSocket library (as a submodule)
-- `fmt/` — formatting library (as a submodule)
 - A number of other header files provide supporting functions
 
 ## Credits
 
 - The PDP-11 virtual panel that is displayed in the browser, is based on the [Javascript PDP 11/70 Emulator](https://github.com/paulnank/pdp11-js) written by Paul Nankervis.
-- WebSocket support is provided through [IXWebSocket](https://github.com/machinezone/IXWebSocket).
-- The HTTP serving is implemented using [cpp-httplib](https://github.com/yhirose/cpp-httplib).
+- WebSocket support and HTTP serving are implemented through [Crow](https://crowcpp.org/).

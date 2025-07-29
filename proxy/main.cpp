@@ -2,7 +2,6 @@
 #include "amd64proxy.hpp"
 #include "netbsdvaxproxy.hpp"
 #include "webserver.hpp"
-#include "json.hpp"
 #include <concepts>
 #include <iostream>
 #include <vector>
