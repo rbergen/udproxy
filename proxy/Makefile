@@ -1,6 +1,12 @@
 # Makefile for VPanel proxy (UDP→WebSocket Proxy, C++20)
 
-CXX ?= c++
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S), Darwin)
+	CXX ?= g++
+else
+	CXX ?= c++
+endif
 
 CXXFLAGS = -std=c++20 -Wall -O2 -MMD -MP -I.
 LDFLAGS = -lpthread -lz
@@ -13,7 +19,6 @@ OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
 # Add brew paths for macOS
-UNAME_S := $(shell uname -s)
 ifeq ($(UNAME_S), Darwin)
     CXXFLAGS += -I$(shell brew --prefix)/include/
     LDFLAGS += -L$(shell brew --prefix)/lib/
