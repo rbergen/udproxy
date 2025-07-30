@@ -9,18 +9,7 @@
 ProxyBase::ProxyBase(unsigned short port)
     : port(port)
 {
-    ws_server.loglevel(crow::LogLevel::Warning); // Set log level to Info
-}
-
-ProxyBase::~ProxyBase()
-{
-    ws_server.stop();
-    udp_thread.request_stop();
-}
-
-void ProxyBase::run()
-{
-    log_info("Starting WebSocket server on port %u", port);
+    ws_server.loglevel(crow::LogLevel::Warning); // Set log level to Warning
 
     CROW_WEBSOCKET_ROUTE(ws_server, "/")
     .onopen([&](crow::websocket::connection& conn)
@@ -43,9 +32,19 @@ void ProxyBase::run()
         std::lock_guard guard(ws_clients_mutex);
         ws_clients.erase(&conn);
     });
+}
 
-    udp_thread = std::jthread([&](std::stop_token stop_token) { udp_loop(stop_token); });
+ProxyBase::~ProxyBase()
+{
+    ws_server.stop();
+    udp_thread.request_stop();
+    if (udp_thread.joinable())
+        udp_thread.join();
+}
 
+void ProxyBase::run()
+{
+    log_info("Starting WebSocket server on port %u", port);
     server_future = ws_server.port(port).multithreaded().run_async();
     if (ws_server.wait_for_server_start() != std::cv_status::no_timeout)
     {
@@ -54,6 +53,8 @@ void ProxyBase::run()
     }
 
     log_info("WebSocket server started");
+
+    udp_thread = std::jthread([&](std::stop_token stop_token) { udp_loop(stop_token); });
 
     server_future.wait();
     log_info("WebSocket server stopped");
