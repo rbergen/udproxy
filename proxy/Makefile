@@ -47,6 +47,13 @@ $(DEP_DIR):
 %.o: %.cpp | $(DEP_DIR)
 	$(CXX) $(CXXFLAGS) -c $< -o $@ -MF $(DEP_DIR)/$(@:.o=.d)
 
-.PHONY: all clean
+.PHONY: all clean debug
+
+debug:
+	@echo "UNAME_S: $(UNAME_S)"
+	@echo "PLATFORM_CXXFLAGS: $(PLATFORM_CXXFLAGS)"
+	@echo "PLATFORM_LDFLAGS: $(PLATFORM_LDFLAGS)"
+	@echo "Final CXXFLAGS: $(CXXFLAGS)"
+	@echo "Final LDFLAGS: $(LDFLAGS)"
 
 -include $(DEPS)
