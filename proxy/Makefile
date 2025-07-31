@@ -13,16 +13,34 @@ OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
 # Add platform-specific paths for dependencies
-# Use a more compatible approach for NetBSD make
-UNAME_S != uname -s
+# Hybrid approach that works with both NetBSD make and GNU make
+
+# Try NetBSD make syntax first, fallback to GNU make syntax
+UNAME_S != uname -s 2>/dev/null || true
+ifeq ($(UNAME_S),)
+UNAME_S := $(shell uname -s)
+endif
 
 # Platform-specific include and library paths
-# Simplified approach for better NetBSD make compatibility
-NETBSD_INCLUDES != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi
-NETBSD_LIBS != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi
+NETBSD_INCLUDES != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi 2>/dev/null || true
+ifeq ($(NETBSD_INCLUDES),)
+NETBSD_INCLUDES := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi)
+endif
 
-DARWIN_INCLUDES != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi
-DARWIN_LIBS != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi
+NETBSD_LIBS != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi 2>/dev/null || true
+ifeq ($(NETBSD_LIBS),)
+NETBSD_LIBS := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi)
+endif
+
+DARWIN_INCLUDES != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi 2>/dev/null || true
+ifeq ($(DARWIN_INCLUDES),)
+DARWIN_INCLUDES := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi)
+endif
+
+DARWIN_LIBS != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi 2>/dev/null || true
+ifeq ($(DARWIN_LIBS),)
+DARWIN_LIBS := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi)
+endif
 
 CXXFLAGS += $(NETBSD_INCLUDES) $(DARWIN_INCLUDES)
 LDFLAGS += $(NETBSD_LIBS) $(DARWIN_LIBS)
