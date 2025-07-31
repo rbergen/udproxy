@@ -13,37 +13,37 @@ OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
 # Add platform-specific paths for dependencies
-# Hybrid approach that works with both NetBSD make and GNU make
+# Pure shell approach compatible with both NetBSD make and GNU make
 
-# Try NetBSD make syntax first, fallback to GNU make syntax
-UNAME_S != uname -s 2>/dev/null || true
-ifeq ($(UNAME_S),)
-UNAME_S := $(shell uname -s)
-endif
+# Detect platform and set paths in one go
+PLATFORM_PATHS != \
+	OS=$$(uname -s); \
+	if [ "$$OS" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then \
+		echo "-I/usr/pkg/include|-L/usr/pkg/lib"; \
+	elif [ "$$OS" = "Darwin" ] && command -v brew >/dev/null 2>&1; then \
+		BREW_PREFIX=$$(brew --prefix); \
+		echo "-I$$BREW_PREFIX/include/|-L$$BREW_PREFIX/lib/"; \
+	fi
 
-# Platform-specific include and library paths
-NETBSD_INCLUDES != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi 2>/dev/null || true
-ifeq ($(NETBSD_INCLUDES),)
-NETBSD_INCLUDES := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi)
-endif
+# Extract include and library paths (fallback for GNU make)
+PLATFORM_PATHS_FALLBACK := $(shell \
+	OS=$$(uname -s); \
+	if [ "$$OS" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then \
+		echo "-I/usr/pkg/include|-L/usr/pkg/lib"; \
+	elif [ "$$OS" = "Darwin" ] && command -v brew >/dev/null 2>&1; then \
+		BREW_PREFIX=$$(brew --prefix); \
+		echo "-I$$BREW_PREFIX/include/|-L$$BREW_PREFIX/lib/"; \
+	fi)
 
-NETBSD_LIBS != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi 2>/dev/null || true
-ifeq ($(NETBSD_LIBS),)
-NETBSD_LIBS := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi)
-endif
+# Use NetBSD result if available, otherwise use GNU make fallback
+FINAL_PATHS := $(if $(PLATFORM_PATHS),$(PLATFORM_PATHS),$(PLATFORM_PATHS_FALLBACK))
 
-DARWIN_INCLUDES != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi 2>/dev/null || true
-ifeq ($(DARWIN_INCLUDES),)
-DARWIN_INCLUDES := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi)
-endif
+# Split the paths
+PLATFORM_INCLUDES := $(shell echo "$(FINAL_PATHS)" | cut -d'|' -f1)
+PLATFORM_LIBS := $(shell echo "$(FINAL_PATHS)" | cut -d'|' -f2)
 
-DARWIN_LIBS != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi 2>/dev/null || true
-ifeq ($(DARWIN_LIBS),)
-DARWIN_LIBS := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi)
-endif
-
-CXXFLAGS += $(NETBSD_INCLUDES) $(DARWIN_INCLUDES)
-LDFLAGS += $(NETBSD_LIBS) $(DARWIN_LIBS)
+CXXFLAGS += $(PLATFORM_INCLUDES)
+LDFLAGS += $(PLATFORM_LIBS)
 
 all: $(TARGET)
 
@@ -62,11 +62,13 @@ $(DEP_DIR):
 .PHONY: all clean debug
 
 debug:
-	@echo "UNAME_S: $(UNAME_S)"
-	@echo "NETBSD_INCLUDES: $(NETBSD_INCLUDES)"
-	@echo "NETBSD_LIBS: $(NETBSD_LIBS)"
-	@echo "DARWIN_INCLUDES: $(DARWIN_INCLUDES)"
-	@echo "DARWIN_LIBS: $(DARWIN_LIBS)"
+	@echo "Platform detection:"
+	@echo "  OS: $$(uname -s)"
+	@echo "PLATFORM_PATHS: $(PLATFORM_PATHS)"
+	@echo "PLATFORM_PATHS_FALLBACK: $(PLATFORM_PATHS_FALLBACK)"
+	@echo "FINAL_PATHS: $(FINAL_PATHS)"
+	@echo "PLATFORM_INCLUDES: $(PLATFORM_INCLUDES)"
+	@echo "PLATFORM_LIBS: $(PLATFORM_LIBS)"
 	@echo "Final CXXFLAGS: $(CXXFLAGS)"
 	@echo "Final LDFLAGS: $(LDFLAGS)"
 	@echo "Directory checks:"
