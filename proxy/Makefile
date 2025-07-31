@@ -12,15 +12,16 @@ TARGET = udproxy
 OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
-# Add brew paths for macOS
-# Note: the ifeq/endif construct is Makefile syntax not all (older) versions
-# of Make support. If Make chokes on this then you won't be on MacOS, so you
-# can safely remove the following 5 lines.
+# Add brew paths for macOS (portable syntax for different make implementations)
 UNAME_S := $(shell uname -s)
-ifeq ($(UNAME_S), Darwin)
-    CXXFLAGS += -I$(shell brew --prefix)/include/
-    LDFLAGS += -L$(shell brew --prefix)/lib/
-endif
+BREW_PREFIX := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then brew --prefix; fi)
+CXXFLAGS += $(if $(BREW_PREFIX),-I$(BREW_PREFIX)/include/)
+LDFLAGS += $(if $(BREW_PREFIX),-L$(BREW_PREFIX)/lib/)
+
+# Add NetBSD package paths for asio and other dependencies
+NETBSD_PKG_PREFIX := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "/usr/pkg"; fi)
+CXXFLAGS += $(if $(NETBSD_PKG_PREFIX),-I$(NETBSD_PKG_PREFIX)/include)
+LDFLAGS += $(if $(NETBSD_PKG_PREFIX),-L$(NETBSD_PKG_PREFIX)/lib)
 
 all: $(TARGET)
 
