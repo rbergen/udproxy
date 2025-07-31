@@ -15,20 +15,23 @@ DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 # Add platform-specific paths for dependencies
 UNAME_S := $(shell uname -s)
 
-# macOS Homebrew paths
-BREW_PREFIX := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then brew --prefix; fi)
-ifneq ($(BREW_PREFIX),)
-    CXXFLAGS += -I$(BREW_PREFIX)/include/
-    LDFLAGS += -L$(BREW_PREFIX)/lib/
-endif
+# Platform-specific include and library paths
+PLATFORM_CXXFLAGS := $(shell \
+	if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then \
+		echo "-I$$(brew --prefix)/include/"; \
+	elif [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then \
+		echo "-I/usr/pkg/include"; \
+	fi)
 
-# NetBSD pkgsrc paths  
-ifeq ($(UNAME_S),NetBSD)
-    ifneq ($(wildcard /usr/pkg/include),)
-        CXXFLAGS += -I/usr/pkg/include
-        LDFLAGS += -L/usr/pkg/lib
-    endif
-endif
+PLATFORM_LDFLAGS := $(shell \
+	if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then \
+		echo "-L$$(brew --prefix)/lib/"; \
+	elif [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then \
+		echo "-L/usr/pkg/lib"; \
+	fi)
+
+CXXFLAGS += $(PLATFORM_CXXFLAGS)
+LDFLAGS += $(PLATFORM_LDFLAGS)
 
 all: $(TARGET)
 
