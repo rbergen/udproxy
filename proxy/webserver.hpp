@@ -9,7 +9,7 @@
 class WebServer : public Loggable {
 public:
     WebServer(unsigned short port, std::string content_dir);
-    ~WebServer();
+    virtual ~WebServer();
     void run(); // blocks
     void stop();
     const char* module_name() const override { return "WebServer"; };

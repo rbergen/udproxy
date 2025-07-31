@@ -117,16 +117,7 @@ int main(int argc, char *argv[])
     int lowdelay = 1;
     setsockopt(sockfd, IPPROTO_IP, IP_TOS, &lowdelay, sizeof(lowdelay));
     
-    printf("UDP socket created. Sending panel data to %s:%d at %d Hz...\n", 
-           server_ip, SERVER_PORT, FRAMES_PER_SECOND);
-    printf("Packet size: %d bytes\n", (int)sizeof(struct vax_panel_packet));
-    printf("Frame delay: %d microseconds\n", USEC_PER_FRAME);
-#ifdef USE_USLEEP
-    printf("Timing method: usleep() [testing for NetBSD VAX timing fix]\n");
-#else
-    printf("Timing method: select() [default]\n");
-#endif
-    printf("Note: UDP is connectionless - errors will be reported during transmission\n");
+    // Verbose output removed for background operation
     
     /* Send frames continuously with kernel notification */
     send_frames_with_notification(sockfd, &server_addr, kmem_fd, panel_addr);
@@ -326,24 +317,9 @@ void send_frames_with_notification(int sockfd, struct sockaddr_in *server_addr, 
         frame_count++;
         
         /* Measure and report actual FPS every 60 frames */
-        if (frame_count % 60 == 0) {
-            gettimeofday(&current_time, NULL);
-            elapsed_seconds = (current_time.tv_sec - start_time.tv_sec) + 
-                             (current_time.tv_usec - start_time.tv_usec) / 1000000.0;
-            actual_fps = frame_count / elapsed_seconds;
-            printf("Frame %d: Actual FPS = %.2f (target: system interrupt rate) [kernel-driven]\n", 
-                   frame_count, actual_fps);
-        }
+        /* FPS reporting removed for background operation */
         
-        /* Debug: Print first few sends */
-        if (frame_count <= 5) {
-            printf("DEBUG: Sent packet #%d, size=%d bytes [via kernel notification]\n", frame_count, (int)sizeof(packet));
-            if (frame_count == 1) {
-                printf("DEBUG: Panel contents - ps_address=0x%lx, ps_data=0x%x\n", 
-                       (unsigned long)panel.ps_address, (unsigned short)panel.ps_data);
-                printf("First packet sent successfully via kernel notification - server appears reachable\n");
-            }
-        }
+        /* First packet success notification removed for background operation */
     }
 }
 
@@ -392,25 +368,9 @@ void send_frames(int sockfd, struct sockaddr_in *server_addr, int kmem_fd, void 
         
         frame_count++;
         
-        /* Measure and report actual FPS every 60 frames */
-        if (frame_count % 60 == 0) {
-            gettimeofday(&current_time, NULL);
-            elapsed_seconds = (current_time.tv_sec - start_time.tv_sec) + 
-                             (current_time.tv_usec - start_time.tv_usec) / 1000000.0;
-            actual_fps = frame_count / elapsed_seconds;
-            printf("Frame %d: Actual FPS = %.2f (target: %d)\n", 
-                   frame_count, actual_fps, FRAMES_PER_SECOND);
-        }
+        /* FPS reporting removed for background operation */
         
-        /* Debug: Print first few sends */
-        if (frame_count <= 5) {
-            printf("DEBUG: Sent packet #%d, size=%d bytes\n", frame_count, (int)sizeof(packet));
-            if (frame_count == 1) {
-                printf("DEBUG: Panel contents - ps_address=0x%lx, ps_data=0x%x\n", 
-                       (unsigned long)panel.ps_address, (unsigned short)panel.ps_data);
-                printf("First packet sent successfully - server appears reachable\n");
-            }
-        }
+        /* First packet success notification removed for background operation */
         
         /* Wait for next frame time */
         /* Testing different timing methods to resolve 2x timing issue on NetBSD VAX */

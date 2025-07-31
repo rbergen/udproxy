@@ -37,7 +37,7 @@ ProxyBase::ProxyBase(unsigned short port)
 ProxyBase::~ProxyBase()
 {
     ws_server.stop();
-    udp_thread.request_stop();
+    stop_requested.store(true);
     if (udp_thread.joinable())
         udp_thread.join();
 }
@@ -54,12 +54,12 @@ void ProxyBase::run()
 
     log_info("WebSocket server started");
 
-    udp_thread = std::jthread([&](std::stop_token stop_token) { udp_loop(stop_token); });
+    udp_thread = std::thread([&]() { udp_loop(); });
 
     server_future.wait();
     log_info("WebSocket server stopped");
 
-    udp_thread.request_stop();
+    stop_requested.store(true);
     if (udp_thread.joinable())
         udp_thread.join();
 }
@@ -67,10 +67,10 @@ void ProxyBase::run()
 void ProxyBase::stop()
 {
     ws_server.stop();
-    udp_thread.request_stop();
+    stop_requested.store(true);
 }
 
-void ProxyBase::udp_loop(std::stop_token stop_token)
+void ProxyBase::udp_loop()
 {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0)
@@ -95,7 +95,7 @@ void ProxyBase::udp_loop(std::stop_token stop_token)
     log_info("UDP socket listening on port %u", port);
 
     std::vector<char> buffer(2048);
-    while (!stop_token.stop_requested())
+    while (!stop_requested.load())
     {
         ssize_t n = recv(sock, buffer.data(), buffer.size(), 0);
         if (n < 0)
