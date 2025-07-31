@@ -12,16 +12,23 @@ TARGET = udproxy
 OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
-# Add brew paths for macOS (portable syntax for different make implementations)
+# Add platform-specific paths for dependencies
 UNAME_S := $(shell uname -s)
-BREW_PREFIX := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then brew --prefix; fi)
-CXXFLAGS += $(if $(BREW_PREFIX),-I$(BREW_PREFIX)/include/)
-LDFLAGS += $(if $(BREW_PREFIX),-L$(BREW_PREFIX)/lib/)
 
-# Add NetBSD package paths for asio and other dependencies
-NETBSD_PKG_PREFIX := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "/usr/pkg"; fi)
-CXXFLAGS += $(if $(NETBSD_PKG_PREFIX),-I$(NETBSD_PKG_PREFIX)/include)
-LDFLAGS += $(if $(NETBSD_PKG_PREFIX),-L$(NETBSD_PKG_PREFIX)/lib)
+# macOS Homebrew paths
+BREW_PREFIX := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then brew --prefix; fi)
+ifneq ($(BREW_PREFIX),)
+    CXXFLAGS += -I$(BREW_PREFIX)/include/
+    LDFLAGS += -L$(BREW_PREFIX)/lib/
+endif
+
+# NetBSD pkgsrc paths  
+ifeq ($(UNAME_S),NetBSD)
+    ifneq ($(wildcard /usr/pkg/include),)
+        CXXFLAGS += -I/usr/pkg/include
+        LDFLAGS += -L/usr/pkg/lib
+    endif
+endif
 
 all: $(TARGET)
 
