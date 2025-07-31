@@ -1,9 +1,10 @@
 #pragma once
 #include "logging.hpp"
-#include "httplib.h"
 #include <string>
 #include <memory>
 #include <thread>
+#define CROW_ENABLE_COMPRESSION 1
+#include "crow_all.h"
 
 class WebServer : public Loggable {
 public:
@@ -11,13 +12,11 @@ public:
     ~WebServer();
     void run(); // blocks
     void stop();
-    const char* module_name() const override;
+    const char* module_name() const override { return "WebServer"; };
     void add_proxy_port(const std::string& proxy_name, unsigned short port);
 protected:
     unsigned short port;
     std::string content_dir;
-    std::unique_ptr<httplib::Server> server;
-    std::thread server_thread;
-    std::atomic<bool> running;
+    crow::SimpleApp server;
     std::map<std::string, unsigned short> proxy_ports;
 };

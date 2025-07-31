@@ -6,14 +6,23 @@ jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, macos-latest]
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v2
-        with:
-          submodules: 'recursive'  # Fetch submodules like IXWebSocket
+
+      - name: Set up dependencies (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasio-dev zlib1g-dev
+
+      - name: Set up dependencies (macOS)
+        if: matrix.os == 'macos-latest'
+        run: brew install asio
 
       - name: Build the proxy
-        run: make -C proxy
+        run: CXX=g++-14 make -C proxy

@@ -8,62 +8,69 @@
 
 ProxyBase::ProxyBase(unsigned short port)
     : port(port)
-    , stop_flag(false)
-    , udp_thread()
-    , server(port, "0.0.0.0")
 {
+    ws_server.loglevel(crow::LogLevel::Warning); // Set log level to Warning
+
+    CROW_WEBSOCKET_ROUTE(ws_server, "/")
+    .onopen([&](crow::websocket::connection& conn)
+    {
+        {
+            std::lock_guard guard(ws_clients_mutex);
+            ws_clients.insert(&conn);
+        }
+
+        log_info("WebSocket client connected: %s", conn.get_remote_ip().c_str());
+    })
+    .onclose([&](crow::websocket::connection& conn, const std::string&, uint16_t)
+    {
+        std::lock_guard guard(ws_clients_mutex);
+        ws_clients.erase(&conn);
+    })
+    .onerror([&](crow::websocket::connection& conn, const std::string& msg)
+    {
+        log_error("WebSocket error from %s: %s", conn.get_remote_ip().c_str(), msg.c_str());
+        std::lock_guard guard(ws_clients_mutex);
+        ws_clients.erase(&conn);
+    });
 }
 
 ProxyBase::~ProxyBase()
 {
-    stop_flag = true;
-    server.stop();
+    ws_server.stop();
+    udp_thread.request_stop();
     if (udp_thread.joinable())
         udp_thread.join();
 }
 
 void ProxyBase::run()
 {
-    ix::initNetSystem();
-
-    log_info("Starting WebSocket server on port %u", server.getPort());
-
-    server.setOnConnectionCallback([this](std::weak_ptr<ix::WebSocket> ws, std::shared_ptr<ix::ConnectionState> state) {
-        if (auto s = ws.lock())
-            s->setOnMessageCallback([](const ix::WebSocketMessagePtr&) {});
-
-        if (state)
-            log_info("WebSocket client connected: %s:%d", state->getRemoteIp().c_str(), state->getRemotePort());
-    });
-
-    auto [success, errorMsg] = server.listen();
-    if (!success)
+    log_info("Starting WebSocket server on port %u", port);
+    server_future = ws_server.port(port).multithreaded().run_async();
+    if (ws_server.wait_for_server_start() != std::cv_status::no_timeout)
     {
-        log_error("WebSocket server listen failed: %s", errorMsg.c_str());
+        log_error("Failed to start WebSocket server on port %u", port);
         return;
     }
 
-    server.start();
     log_info("WebSocket server started");
 
-    udp_thread = std::thread([this]() { udp_loop(); });
+    udp_thread = std::jthread([&](std::stop_token stop_token) { udp_loop(stop_token); });
 
-    server.wait();
+    server_future.wait();
     log_info("WebSocket server stopped");
 
+    udp_thread.request_stop();
     if (udp_thread.joinable())
         udp_thread.join();
-
-    ix::uninitNetSystem();
 }
 
 void ProxyBase::stop()
 {
-    stop_flag = true;
-    server.stop();
+    ws_server.stop();
+    udp_thread.request_stop();
 }
 
-void ProxyBase::udp_loop()
+void ProxyBase::udp_loop(std::stop_token stop_token)
 {
     int sock = socket(AF_INET, SOCK_DGRAM, 0);
     if (sock < 0)
@@ -88,7 +95,7 @@ void ProxyBase::udp_loop()
     log_info("UDP socket listening on port %u", port);
 
     std::vector<char> buffer(2048);
-    while (!stop_flag)
+    while (!stop_token.stop_requested())
     {
         ssize_t n = recv(sock, buffer.data(), buffer.size(), 0);
         if (n < 0)
@@ -113,10 +120,10 @@ void ProxyBase::udp_loop()
             continue;
         }
 
-        for (auto& client : server.getClients())
         {
-            if (client && client->getReadyState() == ix::ReadyState::Open)
-                client->send(json);
+            std::lock_guard guard(ws_clients_mutex);
+            for (auto *client : ws_clients)
+                client->send_text(json);
         }
     }
 

@@ -1,54 +1,73 @@
 #include "webserver.hpp"
-#include "json.hpp"
 
 WebServer::WebServer(unsigned short port, std::string content_dir)
     : port(port)
     , content_dir(std::move(content_dir))
-    , server(nullptr)
-    , running(false)
 {
+    server.loglevel(crow::LogLevel::Warning); // Set log level to Info
 }
 
 WebServer::~WebServer()
 {
-    stop();
-    if (server_thread.joinable())
-        server_thread.join();
-}
-
-const char* WebServer::module_name() const {
-    return "WebServer";
+    server.stop();
 }
 
 void WebServer::run()
 {
-    running = true;
+    // Config endpoint
+    CROW_ROUTE(server, "/config.json")
+    ([&]
+    {
+        // Build the JSON body
+        crow::json::wvalue json;
+        auto& ports_json = json["proxy_ports"];
+        for (const auto& [name, port] : proxy_ports)
+            ports_json[name] = port;
 
-    server = std::make_unique<httplib::Server>();
-    server->set_mount_point("/", content_dir.c_str());
-
-     // Add config endpoint
-    server->Get("/config.json", [this](const httplib::Request&, httplib::Response& res) {
-        nlohmann::json config;
-        config["proxyPorts"] = proxy_ports; // will be a JSON object mapping names to ports
-        res.set_content(config.dump(), "application/json");
+        crow::response res{json.dump()};
+        res.set_header("Content-Type", "application/json");
+        return res;
     });
 
-    log_info("HTTP server serving directory '%s' on port %u", content_dir.c_str(), port);
-    server->listen("0.0.0.0", port);
-    log_info("HTTP server stopped");
+    // Root ‑ index.html
+    CROW_ROUTE(server, "/")
+    ([&]
+    {
+        crow::response res;
+        res.set_static_file_info(content_dir + "/index.html");
+        return res;
+    });
 
-    running = false;
-    server.reset();
+    // Everything else from static/
+    CROW_ROUTE(server, "/<path>")
+    ([&](const std::string& path)
+    {
+        crow::response res;
+        res.set_static_file_info(content_dir + "/" + path);
+        return res;
+    });
+
+    auto server_future = server.port(port).multithreaded().run_async();
+
+    if (server.wait_for_server_start() != std::cv_status::no_timeout)
+    {
+        log_error("Failed to start HTTP server on port %u", port);
+        return;
+    }
+
+    log_info("HTTP server serving directory '%s' on port %u", content_dir.c_str(), port);
+
+    server_future.wait();
+    log_info("HTTP server stopped");
+    server_future.get();
 }
 
 void WebServer::stop()
 {
-    if (server)
-        server->stop();
-    running = false;
+    server.stop();
 }
 
-void WebServer::add_proxy_port(const std::string& proxy_name, unsigned short port) {
+void WebServer::add_proxy_port(const std::string& proxy_name, unsigned short port)
+{
     proxy_ports[proxy_name] = port;
 }

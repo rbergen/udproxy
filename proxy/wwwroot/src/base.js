@@ -106,8 +106,8 @@ function openWebSocket(handleMessage, opts = {}) {
             if (panelKey.includes('.'))
                 panelKey = pathParts[pathParts.length - 2];
 
-            const port = cfg.proxyPorts[panelKey];
-            const wsUrl = `ws://${location.hostname}:${port}`;
+            const port = cfg.proxy_ports[panelKey];
+            const wsUrl = `ws://${location.hostname}:${port}/`;
             ws = new WebSocket(wsUrl);
 
             ws.onopen = () => {
