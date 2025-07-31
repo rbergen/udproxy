@@ -13,15 +13,16 @@ OBJS = $(SOURCES:.cpp=.o)
 DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 
 # Add platform-specific paths for dependencies
-UNAME_S := $(shell uname -s)
+# Use a more compatible approach for NetBSD make
+UNAME_S != uname -s
 
 # Platform-specific include and library paths
 # Simplified approach for better NetBSD make compatibility
-NETBSD_INCLUDES := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi)
-NETBSD_LIBS := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi)
+NETBSD_INCLUDES != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi
+NETBSD_LIBS != if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi
 
-DARWIN_INCLUDES := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi)
-DARWIN_LIBS := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi)
+DARWIN_INCLUDES != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi
+DARWIN_LIBS != if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi
 
 CXXFLAGS += $(NETBSD_INCLUDES) $(DARWIN_INCLUDES)
 LDFLAGS += $(NETBSD_LIBS) $(DARWIN_LIBS)
