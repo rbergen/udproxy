@@ -35,12 +35,12 @@ PLATFORM_PATHS_FALLBACK := $(shell \
 		echo "-I$$BREW_PREFIX/include/|-L$$BREW_PREFIX/lib/"; \
 	fi)
 
-# Use NetBSD result if available, otherwise use GNU make fallback
-FINAL_PATHS := $(if $(PLATFORM_PATHS),$(PLATFORM_PATHS),$(PLATFORM_PATHS_FALLBACK))
+# Combine the results without using $(if) function
+FINAL_PATHS := $(PLATFORM_PATHS)$(PLATFORM_PATHS_FALLBACK)
 
-# Split the paths
-PLATFORM_INCLUDES := $(shell echo "$(FINAL_PATHS)" | cut -d'|' -f1)
-PLATFORM_LIBS := $(shell echo "$(FINAL_PATHS)" | cut -d'|' -f2)
+# Split the paths using shell commands since NetBSD make doesn't have advanced functions
+PLATFORM_INCLUDES := $(shell echo "$(FINAL_PATHS)" | sed 's/|.*//' | head -1)
+PLATFORM_LIBS := $(shell echo "$(FINAL_PATHS)" | sed 's/.*|//' | head -1)
 
 CXXFLAGS += $(PLATFORM_INCLUDES)
 LDFLAGS += $(PLATFORM_LIBS)
