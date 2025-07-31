@@ -16,22 +16,15 @@ DEPS = $(addprefix $(DEP_DIR)/, $(notdir $(OBJS:.o=.d)))
 UNAME_S := $(shell uname -s)
 
 # Platform-specific include and library paths
-PLATFORM_CXXFLAGS := $(shell \
-	if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then \
-		echo "-I$$(brew --prefix)/include/"; \
-	elif [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then \
-		echo "-I/usr/pkg/include"; \
-	fi)
+# Simplified approach for better NetBSD make compatibility
+NETBSD_INCLUDES := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/include" ]; then echo "-I/usr/pkg/include"; fi)
+NETBSD_LIBS := $(shell if [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then echo "-L/usr/pkg/lib"; fi)
 
-PLATFORM_LDFLAGS := $(shell \
-	if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then \
-		echo "-L$$(brew --prefix)/lib/"; \
-	elif [ "$(UNAME_S)" = "NetBSD" ] && [ -d "/usr/pkg/lib" ]; then \
-		echo "-L/usr/pkg/lib"; \
-	fi)
+DARWIN_INCLUDES := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-I$$(brew --prefix)/include/"; fi)
+DARWIN_LIBS := $(shell if [ "$(UNAME_S)" = "Darwin" ] && command -v brew >/dev/null 2>&1; then echo "-L$$(brew --prefix)/lib/"; fi)
 
-CXXFLAGS += $(PLATFORM_CXXFLAGS)
-LDFLAGS += $(PLATFORM_LDFLAGS)
+CXXFLAGS += $(NETBSD_INCLUDES) $(DARWIN_INCLUDES)
+LDFLAGS += $(NETBSD_LIBS) $(DARWIN_LIBS)
 
 all: $(TARGET)
 
@@ -51,9 +44,14 @@ $(DEP_DIR):
 
 debug:
 	@echo "UNAME_S: $(UNAME_S)"
-	@echo "PLATFORM_CXXFLAGS: $(PLATFORM_CXXFLAGS)"
-	@echo "PLATFORM_LDFLAGS: $(PLATFORM_LDFLAGS)"
+	@echo "NETBSD_INCLUDES: $(NETBSD_INCLUDES)"
+	@echo "NETBSD_LIBS: $(NETBSD_LIBS)"
+	@echo "DARWIN_INCLUDES: $(DARWIN_INCLUDES)"
+	@echo "DARWIN_LIBS: $(DARWIN_LIBS)"
 	@echo "Final CXXFLAGS: $(CXXFLAGS)"
 	@echo "Final LDFLAGS: $(LDFLAGS)"
+	@echo "Directory checks:"
+	@echo "  /usr/pkg/include exists: $$(test -d /usr/pkg/include && echo YES || echo NO)"
+	@echo "  /usr/pkg/lib exists: $$(test -d /usr/pkg/lib && echo YES || echo NO)"
 
 -include $(DEPS)
