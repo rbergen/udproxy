@@ -79,9 +79,10 @@ protected:
 
     unsigned short port;
 private:
-    void udp_loop(std::stop_token stop_token);
+    void udp_loop();
 
-    std::jthread udp_thread;
+    std::thread udp_thread;
+    std::atomic<bool> stop_requested{false};
     crow::SimpleApp ws_server;
     std::future<void> server_future;
     std::set<crow::websocket::connection*> ws_clients;

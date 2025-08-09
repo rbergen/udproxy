@@ -185,9 +185,7 @@ int main(int argc, char *argv[])
         exit(1);
     }
     
-    printf("Connected successfully. Sending panel data at %d Hz...\n", FRAMES_PER_SECOND);
-    printf("Packet size: %d bytes (ps_address: %d, ps_data: %d)\n", 
-           (int)sizeof(struct panel_state), (int)sizeof(u32_t), (int)sizeof(u16_t));
+    /* Verbose output removed for background operation */
     
     /* Send frames continuously */
     send_frames(sockfd, &server_addr);
@@ -284,14 +282,7 @@ void send_frames(int sockfd, struct sockaddr_in *server_addr)
                    frame_count, (unsigned long)panel.ps_address, (unsigned short)panel.ps_data);
         }
         
-        /* Debug: Print first few sends */
-        if (frame_count <= 5) {
-            printf("DEBUG: Sent packet #%d, size=%d bytes\n", frame_count, (int)sizeof(panel));
-            if (frame_count == 1) {
-                printf("DEBUG: Panel contents - ps_address=0x%lx, ps_data=0x%lx\n", 
-                       (unsigned long)panel.ps_address, (unsigned long)panel.ps_data);
-            }
-        }
+        /* First packet success notification removed for background operation */
         
         /* Wait for next frame time */
         precise_delay(USEC_PER_FRAME);
