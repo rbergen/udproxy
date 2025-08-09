@@ -8,6 +8,7 @@
 #include <memory>
 #include <csignal>
 #include <thread>
+#include <atomic>
 
 #define WEBSERVER_PORT 4080
 #define CONTENT_DIR "wwwroot"
@@ -20,13 +21,12 @@
 
 static std::vector<std::unique_ptr<ProxyBase>> proxies;
 static std::unique_ptr<WebServer> webserver;
+static std::atomic<bool> g_shutdown_requested{false};
 
 void signal_handler(int)
 {
-    for (auto& proxy : proxies)
-        proxy->stop();
-    if (webserver)
-        webserver->stop();
+    // Async-signal-safe: only set a flag
+    g_shutdown_requested.store(true);
 }
 
 template<typename T>
@@ -57,6 +57,17 @@ int main()
     std::vector<std::thread> threads;
     for (auto& proxy : proxies)
         threads.emplace_back([&proxy]() { proxy->run(); });
+
+    // Wait for shutdown request
+    while (!g_shutdown_requested.load()) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    // Graceful shutdown initiated by signal
+    for (auto& proxy : proxies)
+        proxy->stop();
+    if (webserver)
+        webserver->stop();
 
     for (auto& t : threads)
     {

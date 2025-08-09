@@ -1,13 +1,12 @@
 #pragma once
-
-#include <cstdint>
-
-#pragma pack(push, 1)
-
-struct panel_packet_header
-{
-    uint16_t pp_byte_count;    /* Size of the panel_state payload */
-    uint32_t pp_byte_flags;    /* Panel type flags (PANEL_PDP1170, PANEL_VAX, etc.) */
-};
-
-#pragma pack(pop)
+// This header is intentionally deprecated. Include the shared header instead:
+//   #include "../socket/panel_packet.h"
+#ifdef __has_include
+#  if __has_include("../socket/panel_packet.h")
+#    include "../socket/panel_packet.h"
+#  else
+#    error "panel_packet.h not found; expected at ../socket/panel_packet.h"
+#  endif
+#else
+#  include "../socket/panel_packet.h"
+#endif

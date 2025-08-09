@@ -5,6 +5,7 @@
 #include <fcntl.h>
 #include <cstring>
 #include <chrono>
+#include <cerrno>
 
 ProxyBase::ProxyBase(unsigned short port)
     : port(port)
@@ -49,6 +50,8 @@ void ProxyBase::run()
     if (ws_server.wait_for_server_start() != std::cv_status::no_timeout)
     {
         log_error("Failed to start WebSocket server on port %u", port);
+        ws_server.stop();
+        try { server_future.get(); } catch (...) { /* swallow */ }
         return;
     }
 
@@ -58,6 +61,7 @@ void ProxyBase::run()
 
     server_future.wait();
     log_info("WebSocket server stopped");
+    try { server_future.get(); } catch (...) { /* swallow */ }
 
     stop_requested.store(true);
     if (udp_thread.joinable())
@@ -79,7 +83,12 @@ void ProxyBase::udp_loop()
         return;
     }
 
-    fcntl(sock, F_SETFL, O_NONBLOCK);
+    // Non-blocking and set reuseaddr
+    int reuse = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_REUSEADDR, &reuse, sizeof(reuse)) < 0)
+        log_error("Failed to set SO_REUSEADDR on UDP socket: %s", strerror(errno));
+
+        fcntl(sock, F_SETFL, O_NONBLOCK);
 
     sockaddr_in addr{};
     addr.sin_family = AF_INET;

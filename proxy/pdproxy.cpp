@@ -1,5 +1,6 @@
 #include "pdproxy.hpp"
 #include <cstring>
+#include "../socket/panel_packet.h"
 
 // Packet structure definitions - use tight packing to match network protocol
 #pragma pack(push, 1)
@@ -35,7 +36,7 @@ std::string PDProxy::udp_packet_to_json(std::span<const char> data)
 {
     // Parse the PDP panel state
     pdp_panel_state panel_state;
-    if (!get_panel_state(data, panel_state))
+    if (!get_panel_state(data, PANEL_PDP1170, panel_state))
         return "";
 
     int mode = (panel_state.ps_psw >> 14) & 0x3; // PSW bits 15 and 14: Processor mode

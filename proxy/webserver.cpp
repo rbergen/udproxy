@@ -4,7 +4,7 @@ WebServer::WebServer(unsigned short port, std::string content_dir)
     : port(port)
     , content_dir(std::move(content_dir))
 {
-    server.loglevel(crow::LogLevel::Warning); // Set log level to Info
+    server.loglevel(crow::LogLevel::Warning); // Set log level to Warning
 }
 
 WebServer::~WebServer()
@@ -52,6 +52,8 @@ void WebServer::run()
     if (server.wait_for_server_start() != std::cv_status::no_timeout)
     {
         log_error("Failed to start HTTP server on port %u", port);
+        server.stop();
+        try { server_future.get(); } catch (...) { /* swallow */ }
         return;
     }
 

@@ -6,7 +6,7 @@
 #include <memory>
 #include <vector>
 #include "logging.hpp"
-#include "types.hpp"
+#include "../socket/panel_packet.h"
 #define CROW_ENABLE_COMPRESSION 1
 #include "crow_all.h"
 
@@ -27,7 +27,7 @@ public:
 
 protected:
     template<typename T>
-    bool get_panel_state(std::span<const char> data, T& panel_state)
+    bool get_panel_state(std::span<const char> data, panel_type_t expected_type, T& panel_state)
     {
         // Check minimum size for header
         if (data.size() < sizeof(panel_packet_header))
@@ -41,6 +41,14 @@ protected:
         panel_packet_header header;
         memcpy(&header, data.data(), sizeof(panel_packet_header));
 
+        // Validate panel type
+        if (header.pp_byte_flags != static_cast<uint32_t>(expected_type))
+        {
+            log_error("Unexpected panel type: got %u, expected %u",
+                      header.pp_byte_flags, static_cast<unsigned>(expected_type));
+            return false;
+        }
+
         // Check if we have enough data for the complete packet
         size_t expected_total_size = sizeof(panel_packet_header) + header.pp_byte_count;
         if (data.size() < expected_total_size)
@@ -50,7 +58,7 @@ protected:
             return false;
         }
 
-        // Check if the payload size matches the PDP panel state size
+        // Check if the payload size matches the panel state size
         if (header.pp_byte_count != sizeof(T))
         {
             log_error("Invalid payload size: %u bytes (expected %zu for panel state)",
@@ -68,9 +76,11 @@ protected:
         static const char* digits = "0123456789ABCDEF";
         std::string result(N, '0');
 
-        for (size_t i = N - 1; i >= 0 && value; --i)
+        // Safe reverse loop: i goes from N-1 down to 0
+        // Stop early if value becomes 0
+        for (size_t i = N; i-- > 0 && value; )
         {
-            result[i] = digits[value & 0xF];
+            result[i] = digits[static_cast<unsigned>(value) & 0xF];
             value >>= 4;
         }
 

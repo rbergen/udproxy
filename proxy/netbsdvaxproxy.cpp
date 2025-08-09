@@ -1,5 +1,6 @@
 #include "netbsdvaxproxy.hpp"
 #include <cstring>
+#include "../socket/panel_packet.h"
 
 // Packet structure definitions - use tight packing to match network protocol
 #pragma pack(push, 1)
@@ -30,7 +31,7 @@ std::string NetBSDVAXProxy::udp_packet_to_json(std::span<const char> data)
 {
     // Parse the NetBSD VAX panel state
     netbsdvax_panel_state panel_state;
-    if (!get_panel_state(data, panel_state))
+    if (!get_panel_state(data, PANEL_VAX, panel_state))
         return "";
 
     crow::json::wvalue json;
